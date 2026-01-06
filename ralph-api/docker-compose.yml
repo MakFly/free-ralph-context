@@ -1,0 +1,141 @@
+# Ralph API - Docker Compose
+#
+# Services:
+#   - postgres:  PostgreSQL 16 + pgvector (port 5432)
+#   - redis:     Redis 7 cache (port 6379)
+#   - api:       Ralph FastAPI (port 8000)
+#   - adminer:   Database UI (port 8080)
+#   - dozzle:    Docker logs UI (port 9999)
+#
+# Usage:
+#   docker-compose up -d           # Start all
+#   docker-compose logs -f api     # Follow API logs
+#   docker-compose down            # Stop all
+
+services:
+  # ============================================================
+  # PostgreSQL with pgvector - Primary database
+  # ============================================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ralph-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ralph
+      POSTGRES_USER: ralph
+      POSTGRES_PASSWORD: ralph_secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ralph -d ralph"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ralph-network
+
+  # ============================================================
+  # Redis - Cache and session storage
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ralph-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ralph-network
+
+  # ============================================================
+  # Ralph API - FastAPI application
+  # ============================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ralph-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://ralph:ralph_secret@postgres:5432/ralph
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - EMBEDDING_CACHE_TTL=3600
+      # HuggingFace cache - writable volume for models
+      - TRANSFORMERS_CACHE=/cache/huggingface
+      - HF_HOME=/cache/huggingface
+      # Transcript polling - HOME points to mounted host home
+      - HOME=/host-home
+      # MCP server path for health checks
+      - RALPH_MCP_SERVER_PATH=/ralph-mcp/mcp_server.py
+      # Encryption key for API keys (load from .env)
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app:ro
+      - ${HOME}:/host-home:ro  # Mount host home for transcript detection
+      - ${HOME}/.ralph:/host-home/.ralph:rw  # Writable mount for Ralph MCP SQLite database
+      - hf-cache:/cache/huggingface  # Writable cache for models
+      - ../ralph-mcp:/ralph-mcp:ro  # Mount ralph-mcp for health checks
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - ralph-network
+
+  # ============================================================
+  # Adminer - Database management UI
+  # ============================================================
+  adminer:
+    image: adminer:latest
+    container_name: ralph-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: nette
+    depends_on:
+      - postgres
+    networks:
+      - ralph-network
+
+  # ============================================================
+  # Dozzle - Docker logs viewer
+  # ============================================================
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: ralph-dozzle
+    ports:
+      - "9999:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: "name=ralph-*"
+    networks:
+      - ralph-network
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  hf-cache:
+    driver: local
+
+networks:
+  ralph-network:
+    name: ralph-network
+    driver: bridge

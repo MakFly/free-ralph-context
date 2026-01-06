@@ -1,0 +1,130 @@
+# REST API Reference
+
+HTTP endpoints for Ralph Dashboard.
+
+## Base URL
+
+```
+http://localhost:3847
+```
+
+## Endpoints
+
+### GET `/status`
+
+Get current Ralph status.
+
+```bash
+curl http://localhost:3847/status
+```
+
+**Response:**
+
+```json
+{
+  "connected": true,
+  "projectCount": 3,
+  "projects": [...],
+  "sources": [...],
+  "totalTokens": 145000,
+  "timestamp": "2024-01-05T10:30:00Z"
+}
+```
+
+### GET `/api/metrics/history`
+
+Get metrics history.
+
+```bash
+curl "http://localhost:3847/api/metrics/history?sessionId=xxx&type=tokens"
+```
+
+**Query Parameters:**
+
+| Param     | Type   | Description           |
+| --------- | ------ | --------------------- |
+| sessionId | string | Filter by session     |
+| type      | string | Metric type           |
+| start     | string | Start date (ISO 8601) |
+| end       | string | End date (ISO 8601)   |
+
+### GET `/api/llm/usage`
+
+Get LLM usage summary.
+
+```bash
+curl "http://localhost:3847/api/llm/usage?sessionId=xxx"
+```
+
+**Response:**
+
+```json
+{
+  "totalCalls": 156,
+  "totalTokens": 234000,
+  "totalCost": 0.45,
+  "byOperation": {...},
+  "byProvider": {...}
+}
+```
+
+### GET `/api/llm/costs`
+
+Get LLM cost breakdown.
+
+```bash
+curl "http://localhost:3847/api/llm/costs?start=2024-01-01&end=2024-01-31"
+```
+
+### POST `/api/checkpoint`
+
+Create a checkpoint.
+
+```bash
+curl -X POST http://localhost:3847/api/checkpoint \
+  -H "Content-Type: application/json" \
+  -d '{"label": "Before deploy", "state": {...}}'
+```
+
+### POST `/api/compress`
+
+Compress session context.
+
+```bash
+curl -X POST http://localhost:3847/api/compress \
+  -H "Content-Type: application/json" \
+  -d '{"targetRatio": 0.3}'
+```
+
+### POST `/api/memory`
+
+Store a memory.
+
+```bash
+curl -X POST http://localhost:3847/api/memory \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Decision made",
+    "category": "decision",
+    "priority": "high"
+  }'
+```
+
+## Error Responses
+
+All endpoints may return errors:
+
+```json
+{
+  "error": "Invalid session ID",
+  "code": "INVALID_SESSION",
+  "details": {...}
+}
+```
+
+**HTTP Status Codes:**
+
+- 200: Success
+- 400: Bad request
+- 404: Not found
+- 500: Server error

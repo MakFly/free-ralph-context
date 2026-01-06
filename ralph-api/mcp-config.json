@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "ralph": {
+      "command": "python",
+      "args": [
+        "-m",
+        "app.mcp.server"
+      ],
+      "cwd": "/home/kev/Documents/lab/brainstorming/free-ralph-context/ralph-api",
+      "env": {
+        "PYTHONPATH": "/home/kev/Documents/lab/brainstorming/free-ralph-context/ralph-api",
+        "DATABASE_URL": "postgresql+asyncpg://ralph:ralph@localhost:5432/ralph",
+        "REDIS_URL": "redis://localhost:6379"
+      }
+    }
+  }
+}

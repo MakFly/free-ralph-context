@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.local
+
+# TanStack / Vinxi / Nitro
+.tanstack/
+.nitro/
+.wrangler/
+.output/
+.vinxi/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+vite-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Temporary files
+*.tmp
+.cache/
+.turbo/
+
+# Project-specific
+count.txt
+todos.json

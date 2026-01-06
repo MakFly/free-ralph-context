@@ -1,0 +1,118 @@
+# Architecture
+
+Understand Ralph Dashboard architecture.
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Ralph Dashboard                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Frontend   │  │   SSE Server │  │  MCP Server  │  │
+│  │  (React/TS)  │  │   (Node.js)  │  │   (Node.js)  │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│  TanStack    │  │  File System │  │   Claude     │
+│    Router    │  │  Monitoring  │  │    Code      │
+└──────────────┘  └──────────────┘  └──────────────┘
+```
+
+## Frontend Architecture
+
+### Tech Stack
+
+- **Framework**: TanStack Start (React SSR)
+- **Router**: TanStack Router
+- **UI**: shadcn/ui + Radix UI
+- **Styling**: Tailwind CSS v4
+- **State**: React hooks + SSE
+
+### Component Structure
+
+```
+src/
+├── components/
+│   ├── docs/          # Documentation components
+│   ├── layout/        # Layout components
+│   ├── pages/         # Page components
+│   ├── skeletons/     # Loading skeletons
+│   └── ui/            # UI primitives
+├── hooks/
+│   └── use-ralph-sse.ts
+├── lib/
+│   └── utils.ts
+└── routes/
+    └── *.tsx          # Route definitions
+```
+
+## Backend Architecture
+
+### SSE Server
+
+```typescript
+// Event flow
+Client → SSE Connect → Init Event
+                      ↓
+                 File Watcher
+                      ↓
+                 Update Event
+```
+
+### File Monitoring
+
+- **Watchers**: fs.watch() on transcript files
+- **Debouncing**: 500ms batch window
+- **Parsing**: Extract metadata from transcripts
+
+### MCP Integration
+
+Ralph exposes MCP tools:
+
+```typescript
+// Tool registration
+mcpServer.addTool({
+  name: 'ralph_status',
+  handler: async () => {
+    return getCurrentStatus()
+  },
+})
+```
+
+## Data Flow
+
+```
+Claude Code Session
+        ↓
+  Transcript File
+        ↓
+  File Watcher Detects Change
+        ↓
+  Parse & Extract Metadata
+        ↓
+  Update State
+        ↓
+  SSE Broadcast
+        ↓
+  Dashboard Update
+```
+
+## Performance
+
+### Optimization Strategies
+
+1. **Debouncing**: Batch file changes
+2. **Caching**: Memoized computations
+3. **Virtual Scrolling**: For large lists
+4. **Code Splitting**: Route-based chunks
+
+### Memory Management
+
+- State is limited to last 100 projects
+- Old metrics are pruned after 90 days
+- Checkpoints are compressed
+
+> **Info:**
+> **Scalability**: Ralph handles 100+ concurrent projects without performance degradation.

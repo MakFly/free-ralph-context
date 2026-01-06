@@ -1,0 +1,69 @@
+# Context Management
+
+Understanding how Ralph manages Claude Code context.
+
+## What is Context?
+
+Context refers to the conversation history and files that Claude Code uses to understand your project. It's measured in **tokens** - typically limited to 200,000 tokens per session.
+
+## Context Levels
+
+| Percentage | Status      | Action                        |
+| ---------- | ----------- | ----------------------------- |
+| 0-60%      | 🟢 Healthy  | No action needed              |
+| 60-70%     | 🟡 Monitor  | Consider checkpoint           |
+| 70-85%     | 🟠 Compress | Run `ralph_compress()`        |
+| 85%+       | 🔴 Critical | Compress or spawn new session |
+
+## How Ralph Tracks Context
+
+```typescript
+interface Project {
+  name: string
+  currentTokens: number
+  maxTokens: number
+  pct: number // Usage percentage
+  lastUpdated: string
+  isRealData: boolean // From API or estimated
+}
+```
+
+### Data Sources
+
+1. **API Usage**: Direct from Claude API (most accurate)
+2. **File Size**: Estimated from transcript file size (fallback)
+
+## Compression Strategy
+
+Ralph uses AI to compress context intelligently:
+
+```typescript
+interface CompressionStrategy {
+  preserve: string[] // Elements to keep
+  compress: string[] // Elements to summarize
+  remove: string[] // Elements to drop
+}
+```
+
+### What Gets Preserved
+
+- Recent conversation (last 50 messages)
+- File context for active files
+- Important decisions (from memory)
+- User-defined critical sections
+
+### What Gets Compressed
+
+- Old conversation history
+- Resolved error messages
+- Completed task discussions
+
+> **Warning:**
+> **Always create a checkpoint before compressing!** You can restore if the compression removes something important.
+
+## Best Practices
+
+1. **Monitor Regularly**: Check the dashboard periodically
+2. **Create Checkpoints**: Before major changes
+3. **Compress Proactively**: Don't wait for 85%
+4. **Review Compressions**: Check what was removed

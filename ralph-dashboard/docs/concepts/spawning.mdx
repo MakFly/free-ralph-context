@@ -1,0 +1,95 @@
+# Session Spawning
+
+Create fresh sessions while preserving important context.
+
+## What is Spawning?
+
+Spawning creates a new Claude Code session with selected context from the current session. This is useful when:
+
+- Context is nearly full (85%+)
+- Starting a new feature
+- Switching to a different task
+- Need a clean slate
+
+## When to Spawn
+
+| Context % | Recommendation        |
+| --------- | --------------------- |
+| < 70%     | Continue working      |
+| 70-85%    | Consider compression  |
+| 85%+      | **Spawn new session** |
+
+## Spawning Workflow
+
+### 1. Create Checkpoint
+
+```typescript
+ralph_checkpoint('Before spawning - current session state')
+```
+
+### 2. Spawn New Session
+
+```typescript
+const newSession = ralph_spawn({
+  keepMemories: true, // Preserve important memories
+  keepFiles: ['config.ts', 'types.ts'], // Keep file context
+  clearHistory: true, // Start fresh conversation
+})
+```
+
+### 3. Continue Work
+
+The new session has:
+
+- Fresh conversation context
+- Preserved memories
+- Selected file context
+- Link to previous checkpoint
+
+## Spawn Options
+
+```typescript
+interface SpawnOptions {
+  // Memory handling
+  keepMemories?: boolean // Keep all memories
+  memoryCategories?: string[] // Keep specific categories
+
+  // File handling
+  keepFiles?: string[] // Keep specific files
+  keepAllFiles?: boolean // Keep all file context
+
+  // Conversation handling
+  clearHistory?: boolean // Clear conversation
+  summary?: boolean // Summarize instead of clearing
+
+  // Metadata
+  label?: string // Label for new session
+  parentCheckpoint?: string // Link to checkpoint
+}
+```
+
+## Examples
+
+### Clean Slate for New Feature
+
+```typescript
+ralph_spawn({
+  clearHistory: true,
+  keepMemories: true,
+  keepAllFiles: false,
+  label: 'Implementing user auth',
+})
+```
+
+### Continue with Summary
+
+```typescript
+ralph_spawn({
+  summary: true, // Summarize previous conversation
+  keepFiles: ['schema.ts', 'api.ts'],
+  label: 'API integration phase 2',
+})
+```
+
+> **Warning:**
+> **Always checkpoint before spawning!** You can't return to a spawned session without a checkpoint.

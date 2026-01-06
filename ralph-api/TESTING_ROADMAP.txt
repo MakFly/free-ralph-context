@@ -1,0 +1,384 @@
+================================================================================
+RALPH API TEST SPRINT - DELIVERABLES & IMPLEMENTATION ROADMAP
+================================================================================
+
+GENERATED: January 5, 2026
+STATUS: Ready for Sprint Planning & Execution
+SCOPE: 14 services, 6 models, 25+ endpoints, 149 tests, 80%+ coverage
+
+================================================================================
+PRIMARY DELIVERABLES (4 Documents)
+================================================================================
+
+1. PRD_TEST_SPRINT.md (565 lines)
+   - Complete product requirements document
+   - Full specification for entire test sprint
+   - Unit test strategy (services by priority/tier)
+   - Integration test strategy (APIs, database, SSE)
+   - Test infrastructure setup (pytest, fixtures, mocking)
+   - Acceptance criteria (coverage targets, quality gates)
+   - 5-phase execution plan (foundation, core, logic, integration, hardening)
+   - Test data and fixtures specification
+   - Known challenges and mitigation strategies
+   - Success metrics and KPIs
+   
+   USE THIS FOR: Detailed technical planning, implementation reference
+
+2. TEST_SPRINT_SUMMARY.md (210 lines)
+   - Executive summary for stakeholders
+   - Risk-based testing approach (TIER 1, 2, 3 priority)
+   - Why each service matters (cross-cutting vs supporting)
+   - Test counts and coverage targets
+   - 5-day sprint schedule with time allocation
+   - Quality gates (must-pass criteria before merge)
+   - Success metrics and KPIs
+   
+   USE THIS FOR: Kickoff meetings, stakeholder alignment, sprint planning
+
+3. TEST_MATRIX.md (456 lines)
+   - Service-by-service test mapping
+   - Critical test cases for each service
+   - Mock requirements per service
+   - Integration test groups (API routes, database, streaming)
+   - Test count summary (149 total: 105 unit + 44 integration)
+   - Coverage targets by component (100% session, 90% quota, etc.)
+   - Visual coverage bars
+   
+   USE THIS FOR: Implementation checklist, reference during coding
+
+4. TEST_QUICK_REFERENCE.md (NEW - Quick lookup guide)
+   - At-a-glance overview
+   - Daily breakdown by day
+   - Essential fixtures needed
+   - Critical test cases (100% coverage required)
+   - Mocking strategy cheat sheet
+   - Coverage targets table
+   - Running tests (locally and CI)
+   - Common gotchas
+   - Success checklist
+   
+   USE THIS FOR: Daily standup, quick problem-solving, context refresh
+
+================================================================================
+SERVICE COVERAGE BREAKDOWN
+================================================================================
+
+TIER 1: CRITICAL CORE (90%+ coverage required)
+├─ Session Service           [12 unit tests]  → 100% coverage target
+├─ Quota Service             [10 unit tests]  → 90% coverage target
+├─ Memory Service            [12 unit tests]  → 90% coverage target
+├─ Checkpoint Service        [10 unit tests]  → 90% coverage target
+└─ Subtotal: 44 unit tests, 15 integration tests = 59 total
+
+TIER 2: BUSINESS LOGIC (85%+ coverage required)
+├─ Compression Service       [8 unit tests]   → 85% coverage target
+├─ Fold Service              [8 unit tests]   → 85% coverage target
+├─ Spawn Service             [10 unit tests]  → 85% coverage target
+├─ Boundary Service          [8 unit tests]   → 85% coverage target
+├─ Lineage Service           [8 unit tests]   → 80% coverage target
+└─ Subtotal: 42 unit tests, 11 integration tests = 53 total
+
+TIER 3: SUPPORTING (80%+ coverage required)
+├─ Embedding Service         [6 unit tests]   → 80% coverage target
+├─ Search Service            [5 unit tests]   → 80% coverage target
+├─ LLM Provider              [8 unit tests]   → 80% coverage target
+└─ Subtotal: 19 unit tests, 3 integration tests = 22 total
+
+INFRASTRUCTURE
+├─ Database Integration      [10 tests]       (cascade, JSONB, pgvector)
+├─ SSE Streaming             [5 tests]        (connections, format, cleanup)
+└─ Subtotal: 15 tests
+
+GRAND TOTAL: 105 unit tests + 44 integration tests = 149 tests
+
+================================================================================
+IMPLEMENTATION ROADMAP (5 Days)
+================================================================================
+
+DAY 1: FOUNDATION & TIER 1 START
+├─ Morning (2h):   Create conftest.py with all core fixtures
+├─         (1h):   Set up test PostgreSQL (Docker)
+├─         (1h):   Create database factories
+├─ Afternoon (3h): Session Service tests (12 tests)
+└─ Status: Foundation complete, 1 TIER 1 service done
+
+DAY 2: COMPLETE TIER 1
+├─ Morning (2h):   Quota Service tests (10 tests)
+├─ Noon (2h):      Memory Service tests (12 tests)
+├─ Afternoon (2h): Checkpoint Service tests (10 tests)
+└─ Status: All TIER 1 services at 90%+ coverage = 59 tests done
+
+DAY 3-4: TIER 2 BUSINESS LOGIC
+├─ Day 3 AM (2h):    Compression Service tests (8)
+├─ Day 3 (2h):       Fold Service tests (8)
+├─ Day 3 PM (2h):    Spawn Service tests (10)
+├─ Day 4 AM (2h):    Boundary Service tests (8)
+├─ Day 4 (2h):       Lineage Service tests (8)
+├─ Day 4 PM (2h):    Database integration tests (10)
+└─ Status: All TIER 2 at 85%+ coverage = 52 tests, 111 total
+
+DAY 4-5: INTEGRATION & HARDENING
+├─ Day 4 (2h):      API endpoint tests (44 tests across 5 route groups)
+├─         (1h):    SSE streaming tests (5 tests)
+├─ Day 5 AM (2h):   Coverage gap analysis and edge cases
+├─ Day 5 (1h):      CI/CD setup (.github/workflows/test.yml)
+└─ Status: All 149 tests, 80%+ coverage, CI working
+
+================================================================================
+CRITICAL SUCCESS FACTORS
+================================================================================
+
+MUST-HAVE (Cannot proceed without):
+✓ PostgreSQL test database (real, with pgvector)
+✓ conftest.py with async fixtures
+✓ Database factories for quick test setup
+✓ Mock LLM provider (no external API calls)
+✓ 100% TIER 1 service coverage
+✓ Session Service at 100%
+
+SHOULD-HAVE (Highly recommended):
+✓ Coverage.py reporting
+✓ Pytest-cov HTML reports
+✓ All TIER 2 at 85%+
+✓ Database isolation verified
+✓ CI/CD pipeline functional
+
+NICE-TO-HAVE (Can defer):
+✓ TIER 3 services at 80%+
+✓ Performance benchmarking
+✓ Load testing under concurrent sessions
+
+================================================================================
+KEY METRICS & TARGETS
+================================================================================
+
+COVERAGE GOALS
+├─ Session Service:        100% (12 tests)
+├─ Quota Service:          90%  (10 tests)
+├─ Memory Service:         90%  (12 tests)
+├─ Checkpoint Service:     90%  (10 tests)
+├─ Tier 2 Services (5):    85%  (42 tests)
+├─ Tier 3 Services (3):    80%  (19 tests)
+└─ OVERALL:                80%+ (149 tests)
+
+CRITICAL PATHS (100% coverage REQUIRED)
+├─ Session creation and token tracking
+├─ Memory add/search/delete operations
+├─ Checkpoint create/restore flows
+├─ Compression ratio calculation
+├─ Spawn decision logic (all branches)
+├─ Fold decision logic (all 4 thresholds)
+├─ Boundary warnings (time/context/quota)
+├─ Database cascade deletes
+└─ pgvector similarity search
+
+PERFORMANCE TARGETS
+├─ Session CRUD: < 100ms
+├─ Memory search: < 200ms
+├─ Checkpoint restore: < 150ms
+├─ Full test suite: < 5 minutes
+└─ No test failures: 100% success rate
+
+================================================================================
+QUALITY GATES (Pre-Merge Checklist)
+================================================================================
+
+COVERAGE
+  [ ] 80%+ overall coverage (pytest-cov)
+  [ ] 100% critical path coverage
+  [ ] All TIER 1 at 90%+ minimum
+  [ ] All TIER 2 at 85%+ minimum
+  [ ] Gap analysis complete
+
+CORRECTNESS
+  [ ] All 149 tests passing
+  [ ] Zero flaky tests (run 3x to verify)
+  [ ] Database isolation verified (no test pollution)
+  [ ] Async operations complete without warnings
+  [ ] No SQL injection vectors in tests
+  [ ] Mock usage consistent and documented
+
+PERFORMANCE
+  [ ] Session CRUD < 100ms
+  [ ] Memory search < 200ms
+  [ ] Checkpoint restore < 150ms
+  [ ] All tests complete in < 5 minutes
+  [ ] No memory leaks detected
+
+INFRASTRUCTURE
+  [ ] conftest.py complete with all fixtures
+  [ ] CI/CD pipeline functional
+  [ ] Coverage reports generated
+  [ ] Tests reproducible locally
+  [ ] Documentation complete
+
+================================================================================
+DELIVERABLE FILES (After Sprint Completion)
+================================================================================
+
+Documentation:
+  ✓ PRD_TEST_SPRINT.md           (565 lines, main requirements)
+  ✓ TEST_SPRINT_SUMMARY.md        (210 lines, executive summary)
+  ✓ TEST_MATRIX.md                (456 lines, service mapping)
+  ✓ TEST_QUICK_REFERENCE.md       (Quick lookup guide)
+  ✓ tests/README.md               (How to run tests locally)
+
+Unit Tests (105 tests):
+  → tests/unit/test_session_service.py           (12 tests)
+  → tests/unit/test_quota_service.py             (10 tests)
+  → tests/unit/test_memory_service.py            (12 tests)
+  → tests/unit/test_checkpoint_service.py        (10 tests)
+  → tests/unit/test_compression_service.py       (8 tests)
+  → tests/unit/test_fold_service.py              (8 tests)
+  → tests/unit/test_spawn_service.py             (10 tests)
+  → tests/unit/test_boundary_service.py          (8 tests)
+  → tests/unit/test_lineage_service.py           (8 tests)
+  → tests/unit/test_embedding_service.py         (6 tests)
+  → tests/unit/test_search_service.py            (5 tests)
+  → tests/unit/test_llm_provider.py              (8 tests)
+
+Integration Tests (44 tests):
+  → tests/integration/test_api_sessions.py       (15 tests)
+  → tests/integration/test_api_memories.py       (12 tests)
+  → tests/integration/test_api_checkpoints.py    (10 tests)
+  → tests/integration/test_api_continuity.py     (10 tests - spawn/fold/boundary/lineage)
+  → tests/integration/test_database.py           (10 tests - cascade/transactions/pgvector)
+  → tests/integration/test_sse_streaming.py      (5 tests)
+
+Infrastructure:
+  → tests/conftest.py                            (Pytest fixtures & config)
+  → tests/fixtures.py                            (Factories & test data)
+  → .github/workflows/test.yml                   (CI/CD pipeline)
+  → pytest.ini                                   (Pytest configuration)
+
+Reporting:
+  → coverage.xml                                 (Coverage report)
+  → htmlcov/index.html                           (HTML coverage report)
+  → test-results.json                            (Test results)
+
+================================================================================
+MOCKING STRATEGY
+================================================================================
+
+DATABASE MOCKING
+├─ Use real PostgreSQL test instance
+├─ Apply Alembic migrations automatically
+├─ Use transaction rollback per test (speed)
+└─ NO mocking of DB for business logic
+
+EXTERNAL API MOCKING
+├─ LLM Provider: Mock Anthropic API
+│  └─ compression_service.compress()
+│  └─ spawn_service._generate_handoff_prompt()
+│
+├─ Embedding Service: Mock sentence-transformers
+│  └─ Return hardcoded 384-dim vectors
+│
+└─ Redis: Use fakeredis or unittest.mock
+   └─ Cache hits/misses, TTL expiry
+
+FIXTURE ORGANIZATION
+├─ Async fixtures for database
+├─ Session factories for quick creation
+├─ Memory factories with embeddings
+├─ Mock objects for external APIs
+└─ Parameterized tests for threshold coverage
+
+================================================================================
+TIMELINE & RESOURCE ALLOCATION
+================================================================================
+
+TOTAL EFFORT: 34 hours over 5 days (6.8 hours/day)
+
+DAY 1: Foundation + TIER 1 Start
+  │ Morning (4h):     Infrastructure setup (conftest, DB, factories)
+  │ Afternoon (3h):   Session Service tests (12 tests)
+  └─ 7 hours
+
+DAY 2: TIER 1 Complete
+  │ Full day (7h):    Quota (10), Memory (12), Checkpoint (10) tests
+  └─ 7 hours
+
+DAY 3: TIER 2 First Half
+  │ Full day (7h):    Compression (8), Fold (8), Spawn (10) tests
+  └─ 7 hours
+
+DAY 4: TIER 2 Complete + Integration Start
+  │ Morning (4h):     Boundary (8), Lineage (8), DB integration (10)
+  │ Afternoon (2h):   API endpoint tests start
+  └─ 6 hours
+
+DAY 5: Integration + Hardening
+  │ Morning (4h):     Complete API tests (44), SSE (5)
+  │ Afternoon (2h):   Coverage gaps, edge cases, CI/CD setup
+  └─ 6 hours
+
+TOTAL: 33 hours (within 5-day 34-hour budget)
+
+================================================================================
+RISK MITIGATION
+================================================================================
+
+RISK: pgvector complexity
+  MITIGATION: Use real PostgreSQL; mock cosine_distance only if needed
+
+RISK: Async test failures / flakiness
+  MITIGATION: pytest-asyncio, explicit cleanup, test 3x before merge
+
+RISK: Test data pollution between tests
+  MITIGATION: Transaction rollback per test, separate test database
+
+RISK: Mock inconsistency causing false positives
+  MITIGATION: Document all mock interfaces, use factories
+
+RISK: LLM API flakiness in tests
+  MITIGATION: 100% mocked; no external calls in test suite
+
+RISK: Coverage gaps discovered late
+  MITIGATION: Use coverage.py to identify untested branches
+
+RISK: CI/CD setup incomplete
+  MITIGATION: GitHub Actions template prepared, tested locally first
+
+================================================================================
+NEXT STEPS (IMMEDIATE)
+================================================================================
+
+WEEK OF JANUARY 5-12:
+  1. Review documents (PRD, Summary, Matrix, Quick Ref)
+  2. Kickoff meeting: align on TIER 1 priorities
+  3. Set up test PostgreSQL (Docker) and conftest.py
+  4. Implement Session Service tests (highest priority)
+  5. Daily standup on progress
+
+FIRST CHECKPOINT (End of Day 2):
+  - TIER 1 complete (Session, Quota, Memory, Checkpoint)
+  - 59 tests passing
+  - 90%+ coverage on all TIER 1 services
+  - CI/CD pipeline running locally
+
+FINAL CHECKPOINT (End of Day 5):
+  - All 149 tests passing
+  - 80%+ overall coverage
+  - All quality gates met
+  - Ready for merge to main branch
+
+================================================================================
+CONTACT & QUESTIONS
+================================================================================
+
+This test sprint PRD is comprehensive and self-contained. All questions
+should be answered by one of the four documents:
+
+  1. Specific test requirements → PRD_TEST_SPRINT.md
+  2. High-level overview → TEST_SPRINT_SUMMARY.md
+  3. Service-by-service mapping → TEST_MATRIX.md
+  4. Quick reference/gotchas → TEST_QUICK_REFERENCE.md
+
+Files are located at:
+  /home/kev/Documents/lab/brainstorming/free-ralph-context/ralph-api/
+
+================================================================================
+DOCUMENT GENERATED: January 5, 2026
+STATUS: READY FOR SPRINT EXECUTION
+================================================================================

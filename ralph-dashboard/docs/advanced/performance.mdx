@@ -1,0 +1,116 @@
+# Performance
+
+Optimize Ralph Dashboard performance.
+
+## Dashboard Performance
+
+### Refresh Rate
+
+Adjust refresh interval:
+
+```json
+{
+  "refreshInterval": 500 // milliseconds
+}
+```
+
+**Trade-offs:**
+
+| Interval | CPU    | Battery | Responsiveness |
+| -------- | ------ | ------- | -------------- |
+| 300ms    | High   | Poor    | Excellent      |
+| 500ms    | Medium | Medium  | Good           |
+| 1000ms   | Low    | Good    | Fair           |
+
+### Virtual Scrolling
+
+For large project lists, enable virtual scrolling:
+
+```tsx
+import { VirtualList } from '@/components/ui/virtual-list'
+;<VirtualList
+  items={projects}
+  itemHeight={60}
+  renderItem={(project) => <ProjectRow project={project} />}
+/>
+```
+
+## Backend Performance
+
+### File Monitoring
+
+Optimize file watchers:
+
+```typescript
+// Debounce file events
+const debounced = debounce(onFileChange, 500)
+watcher.on('change', debounced)
+```
+
+### Caching Strategy
+
+```typescript
+// Cache parsed transcripts
+const cache = new LRUCache<string, ParsedTranscript>({
+  max: 100,
+  ttl: 1000 * 60 * 5, // 5 minutes
+})
+```
+
+## Memory Usage
+
+### Monitoring
+
+Check memory usage:
+
+```typescript
+const metrics = ralph_get_status()
+console.log({
+  contextUsage: metrics.contextUsage,
+  memoriesCount: metrics.memoriesCount,
+})
+```
+
+### Optimization Tips
+
+1. **Limit History**: Keep only recent checkpoints
+2. **Compress Old Data**: Archive old metrics
+3. **Prune Memories**: Remove low-priority items
+4. **Clear Sessions**: Remove inactive projects
+
+## Network Performance
+
+### SSE Optimization
+
+```typescript
+// Batch updates
+setInterval(() => {
+  broadcastBatch(getQueuedUpdates())
+}, 500)
+```
+
+### Payload Size
+
+Minimize SSE payload:
+
+```typescript
+// Send only changed fields
+const delta = {
+  project: 'name',
+  changes: { pct: 75 },
+}
+```
+
+## Benchmarks
+
+Typical performance on M2 MacBook Pro:
+
+| Metric         | Value  |
+| -------------- | ------ |
+| Initial Load   | ~200ms |
+| Update Latency | ~50ms  |
+| Memory Usage   | ~100MB |
+| CPU Idle       | &lt;1% |
+| CPU Updating   | ~5%    |
+
+> **Tip:** Profile First - Use browser dev tools to identify bottlenecks before optimizing.

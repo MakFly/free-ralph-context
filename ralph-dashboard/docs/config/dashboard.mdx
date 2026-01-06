@@ -1,0 +1,105 @@
+# Dashboard Settings
+
+Customize the Ralph Dashboard.
+
+## Settings File
+
+Location: `~/.ralph/dashboard.json`
+
+```json
+{
+  "theme": "dark",
+  "refreshInterval": 500,
+  "defaultView": "dashboard",
+  "columns": {
+    "projects": ["name", "context", "status", "updated"],
+    "checkpoints": ["label", "project", "context", "created"]
+  },
+  "notifications": {
+    "enabled": true,
+    "criticalThreshold": 85,
+    "warningThreshold": 70
+  }
+}
+```
+
+## Theme
+
+```json
+{
+  "theme": "dark" // "light" | "dark" | "system"
+}
+```
+
+## Refresh Interval
+
+How often to fetch updates (ms):
+
+```json
+{
+  "refreshInterval": 500 // 500ms default
+}
+```
+
+**Recommended values:**
+
+- Fast: 300ms (CPU intensive)
+- Normal: 500ms (default)
+- Slow: 1000ms (battery saving)
+
+## Default View
+
+Which page to show on load:
+
+```json
+{
+  "defaultView": "dashboard" // "dashboard" | "projects" | "memories" | "checkpoints"
+}
+```
+
+## Table Columns
+
+Customize table columns:
+
+```json
+{
+  "columns": {
+    "projects": ["name", "context", "tokens", "status", "updated", "actions"],
+    "checkpoints": [
+      "label",
+      "project",
+      "context",
+      "tokens",
+      "memories",
+      "created"
+    ]
+  }
+}
+```
+
+**Available columns:**
+
+Projects: `name`, `context`, `tokens`, `status`, `updated`, `actions`
+
+Checkpoints: `label`, `project`, `context`, `tokens`, `memories`, `created`
+
+## Notifications
+
+```json
+{
+  "notifications": {
+    "enabled": true,
+    "criticalThreshold": 85,
+    "warningThreshold": 70,
+    "sound": true
+  }
+}
+```
+
+## Timezone
+
+```json
+{
+  "timezone": "auto" // "auto" | "UTC" | local timezone
+}
+```

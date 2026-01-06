@@ -1,0 +1,524 @@
+# Ralph MCP - Context Management System
+
+**Version**: 2.0 (Auto-Init + Hooks)
+**Last Updated**: 2025-01-06
+
+---
+
+## 🚀 Quick Start
+
+Ralph is **now fully automatic**. No manual commands needed!
+
+```bash
+# Just start working - Ralph auto-initializes on first use
+cd /path/to/your-project
+# Ralph automatically:
+# ✅ Creates session
+# ✅ Detects framework
+# ✅ Learns patterns
+# ✅ Ready to assist!
+```
+
+---
+
+## 📋 Table of Contents
+
+1. [What is Ralph?](#what-is-ralph)
+2. [Architecture](#architecture)
+3. [Auto-Initialization](#auto-initialization)
+4. [Hooks System](#hooks-system)
+5. [MCP Tools](#mcp-tools)
+6. [Configuration](#configuration)
+7. [Advanced Usage](#advanced-usage)
+
+---
+
+## What is Ralph?
+
+Ralph is a **context management system** for AI coding agents that provides:
+
+- 🧠 **Automatic pattern learning** - Detects and stores code patterns
+- 🔍 **Smart context recall** - Retrieves project-specific knowledge
+- 💾 **Persistent sessions** - Survives Claude restarts
+- 🎯 **Zero configuration** - Works out of the box
+
+### Problem Solved
+
+```
+❌ BEFORE: Claude answers with generic knowledge
+"How do I implement Symfony auth?"
+→ Generic Symfony answer (ignores your project's BetterAuth)
+
+✅ AFTER: Claude answers with project context
+"How do I implement Symfony auth?"
+→ Ralph recalls: "This project uses BetterAuth with Paseto V4 tokens"
+→ Claude answers with project-specific patterns
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Ralph MCP System                         │
+└─────────────────────────────────────────────────────────────┘
+                          │
+         ┌────────────────┴────────────────┐
+         │                                 │
+    ┌────▼────┐                      ┌─────▼─────┐
+    │   MCP    │                      │  Hooks    │
+    │  Server  │                      │  System   │
+    │(Python)  │                      │ (JSON)    │
+    └────┬────┘                      └─────┬─────┘
+         │                                 │
+         │          ┌──────────────────────┘
+         │          │
+    ┌────▼─────────▼─────┐
+    │                     │
+    │   SQLite Storage    │
+    │   - Sessions        │
+    │   - Patterns        │
+    │   - Memories        │
+    │                     │
+    └─────────────────────┘
+```
+
+### Components
+
+| Component | Description | Location |
+|-----------|-------------|----------|
+| **MCP Server** | Main server, exposes tools | `ralph-mcp/mcp_server.py` |
+| **LLM Provider** | Multi-provider LLM abstraction | `ralph-mcp/src/llm.py` |
+| **Pattern Extractor** | Static code analysis | `ralph-mcp/src/pattern_extractor.py` |
+| **Database** | SQLite storage | `~/.ralph/ralph-mcp.db` |
+| **Hooks Config** | Auto-hooks settings | `~/.claude/ralph-hooks.json` |
+
+---
+
+## Auto-Initialization
+
+Ralph now **automatically initializes** when you start working:
+
+### Startup Flow
+
+```python
+# 1. Check for existing session
+if session_exists(current_project):
+    restore_session()
+else:
+    # 2. Auto-create session
+    create_session(auto_detect_framework())
+
+    # 3. Auto-learn patterns
+    if no_patterns_exist():
+        learn_patterns(generic_mode)  # Fast, no LLM
+
+# 4. Ready to assist!
+log.info(f"Session ready: {pattern_count} patterns, {memory_count} memories")
+```
+
+### Startup Logs
+
+```
+==================================================
+Ralph MCP Server starting...
+[AUTO] Created new session: a9c949aa...
+       Project: symfony-better-auth
+       Framework: symfony
+[AUTO] Learning project patterns...
+[AUTO] Learned pattern: Symfony MVC (Model-View-Controller)
+[AUTO] Tags: symfony, php, mvc
+[INFO] Session ready: 1 patterns, 0 memories
+==================================================
+```
+
+### Framework Detection
+
+Ralph auto-detects:
+
+| Framework | Detection Markers |
+|-----------|-------------------|
+| **Symfony** | `composer.json`, `bin/console`, `src/Controller/` |
+| **Laravel** | `composer.json`, `artisan`, `app/Http/Controllers/` |
+| **Next.js** | `next.config`, `app/layout.tsx`, `package.json` |
+| **React** | `src/App.tsx`, `package.json` |
+| **Django** | `manage.py`, `settings.py`, `requirements.txt` |
+| **FastAPI** | `app = FastAPI()`, `requirements.txt` |
+
+---
+
+## Hooks System
+
+Hooks make Ralph **completely invisible** - no commands needed!
+
+### How It Works
+
+```
+User asks question
+        ↓
+┌──────────────────────────┐
+│  Hook: BEFORE Tool Call   │
+│  - Detect question type   │
+│  - Auto ralph_recall()    │
+└──────────┬───────────────┘
+           │
+           ↓
+┌──────────────────────────┐
+│  Ralph provides context   │
+│  - Patterns               │
+│  - Memories               │
+│  - Decisions              │
+└──────────┬───────────────┘
+           │
+           ↓
+┌──────────────────────────┐
+│  Claude answers WITH      │
+│  project-specific context │
+└──────────┬───────────────┘
+           │
+           ↓
+┌──────────────────────────┐
+│  Hook: AFTER Tool Call   │
+│  - Detect decisions      │
+│  - Auto ralph_add_memory()│
+└──────────────────────────┘
+```
+
+### Hook Triggers
+
+Hooks activate on these question patterns:
+
+```json
+{
+  "triggers": [
+    {
+      "pattern": "how (would|could|should|do|can|is)",
+      "action": "recall",
+      "priority": "high"
+    },
+    {
+      "pattern": "(create|implement|build|add|fix|debug)",
+      "action": "recall",
+      "priority": "high"
+    },
+    {
+      "pattern": "(architecture|pattern|structure|design)",
+      "action": "recall",
+      "priority": "high"
+    }
+  ]
+}
+```
+
+### Auto-Memorization
+
+Ralph automatically saves:
+
+```json
+{
+  "categories": {
+    "decision": ["chose", "decided", "selected", "using"],
+    "action": ["created", "implemented", "added", "fixed"],
+    "context": ["important", "note that", "remember"]
+  }
+}
+```
+
+---
+
+## MCP Tools
+
+### Core Tools
+
+| Tool | Description | Usage |
+|------|-------------|-------|
+| `ralph_recall` | Retrieve context | `ralph_recall("authentication")` |
+| `ralph_malloc` | Create session | Auto-called, no need |
+| `ralph_learn_pattern` | Learn patterns | Auto-called on startup |
+| `ralph_add_memory` | Store memory | Auto-called by hooks |
+
+### Session Management
+
+| Tool | Description | Example |
+|------|-------------|---------|
+| `ralph_session_info` | Current session info | `ralph_session_info()` |
+| `ralph_list_sessions` | List all sessions | `ralph_list_sessions()` |
+| `ralph_restore_session` | Restore old session | `ralph_restore_session("id")` |
+| `ralph_delete_session` | Delete session | `ralph_delete_session("id")` |
+| `ralph_cleanup_sessions` | Bulk cleanup | `ralph_cleanup_sessions(mode="delete_test", confirm=true)` |
+
+### Pattern Management
+
+| Tool | Description | Example |
+|------|-------------|---------|
+| `ralph_list_patterns` | List patterns | `ralph_list_patterns()` |
+| `ralph_get_pattern` | Get specific pattern | `ralph_get_pattern("auth")` |
+
+### Memory Management
+
+| Tool | Description | Example |
+|------|-------------|---------|
+| `ralph_search` | Search memories | `ralph_search("database")` |
+| `ralph_add_memory` | Add memory | `ralph_add_memory("Used PostgreSQL", category="decision")` |
+
+---
+
+## Configuration
+
+### MCP Config
+
+`~/.claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "ralph": {
+      "command": "/usr/bin/python3",
+      "args": ["/path/to/ralph-mcp/mcp_server.py"],
+      "cwd": "/path/to/ralph-mcp",
+      "env": {
+        "RALPH_API_URL": "http://localhost:8000",
+        "PYTHONPATH": "/path/to/ralph-mcp"
+      }
+    }
+  }
+}
+```
+
+### Hooks Config
+
+`~/.claude/ralph-hooks.json`:
+
+```json
+{
+  "enabled": true,
+  "beforeToolCall": {
+    "enabled": true,
+    "autoRecall": {
+      "enabled": true,
+      "queryExtraction": "auto"
+    }
+  },
+  "afterToolCall": {
+    "enabled": true,
+    "autoMemorize": {
+      "enabled": true
+    }
+  }
+}
+```
+
+### LLM Provider (Optional)
+
+For **intelligent pattern extraction**, set an API key:
+
+```bash
+# Anthropic (default)
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI
+export OPENAI_API_KEY=sk-...
+
+# Mistral
+export MISTRAL_API_KEY=...
+
+# Google
+export GOOGLE_API_KEY=...
+```
+
+---
+
+## Advanced Usage
+
+### Pattern Learning Modes
+
+#### Manual Mode
+
+```javascript
+ralph_learn_pattern(
+  "My Custom Pattern",
+  pattern_description="Description",
+  code_example="// code",
+  tags=["custom", "tag"]
+)
+```
+
+#### Auto Mode (LLM)
+
+```javascript
+// With API key set
+ralph_learn_pattern("Symfony BetterAuth")
+→ LLM analyzes code → Extracts patterns → Stores in DB
+```
+
+#### Auto Mode (Generic)
+
+```javascript
+// Without API key
+ralph_learn_pattern("Symfony BetterAuth")
+→ Static analysis → Extracts framework/structure → Stores in DB
+```
+
+### Session Cleanup
+
+```javascript
+// List all sessions
+ralph_cleanup_sessions()
+
+// Delete test sessions
+ralph_cleanup_sessions(mode="delete_test", confirm=true)
+
+// Delete specific sessions
+ralph_cleanup_sessions(
+  mode="delete_selected",
+  session_ids=["id1", "id2"],
+  confirm=true
+)
+
+// Delete old sessions
+ralph_cleanup_sessions(
+  mode="delete_old",
+  days=30,
+  confirm=true
+)
+```
+
+### Memory Categories
+
+```javascript
+ralph_add_memory(
+  "Used PostgreSQL for authentication data",
+  category="decision",  // decision, action, error, progress, context, other
+  priority="high"       // high, normal, low
+)
+```
+
+---
+
+## Database Schema
+
+### Tables
+
+```sql
+-- Sessions
+CREATE TABLE mcp_sessions (
+    id TEXT PRIMARY KEY,
+    project_path TEXT NOT NULL,
+    task_description TEXT,
+    created_at TIMESTAMP,
+    last_accessed TIMESTAMP,
+    max_tokens INTEGER
+);
+
+-- Patterns
+CREATE TABLE patterns (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    pattern_name TEXT,
+    pattern_description TEXT,
+    code_example TEXT,
+    tags TEXT,  -- JSON array
+    source_mode TEXT,  -- 'llm' or 'generic'
+    source_files TEXT,  -- JSON array
+    created_at TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES mcp_sessions(id)
+);
+
+-- Memories
+CREATE TABLE memories (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    content TEXT,
+    category TEXT,
+    priority TEXT,
+    created_at TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES mcp_sessions(id)
+);
+```
+
+---
+
+## Troubleshooting
+
+### Ralph doesn't recall anything
+
+**Problem**: `ralph_recall()` returns empty
+
+**Solution**:
+```bash
+# Check if session exists
+sqlite3 ~/.ralph/ralph-mcp.db "SELECT * FROM mcp_sessions;"
+
+# Check patterns
+sqlite3 ~/.ralph/ralph-mcp.db "SELECT * FROM patterns;"
+
+# If empty, reinitialize
+sqlite3 ~/.ralph/ralph-mcp.db "DELETE FROM mcp_sessions WHERE project_path != '$PWD';"
+```
+
+### Too many test sessions
+
+**Problem**: Database cluttered with test sessions
+
+**Solution**:
+```javascript
+ralph_cleanup_sessions(mode="delete_test", confirm=true)
+```
+
+### LLM extraction fails
+
+**Problem**: LLM mode returns errors
+
+**Solution**:
+```bash
+# Check API key
+echo $ANTHROPIC_API_KEY
+
+# Force generic mode
+ralph_learn_pattern("Pattern", force_generic=true)
+```
+
+---
+
+## Performance
+
+| Operation | Time | Notes |
+|-----------|------|-------|
+| **Startup** | ~100ms | Generic extraction (no LLM) |
+| **ralph_recall** | ~50ms | SQLite query |
+| **ralph_learn_pattern (generic)** | ~200ms | Static analysis |
+| **ralph_learn_pattern (LLM)** | 2-5s | API call + analysis |
+
+---
+
+## Contributing
+
+See `ralph-mcp/tests/` for test examples.
+
+```bash
+cd ralph-mcp
+pytest tests/test_pattern_learning.py -v
+```
+
+---
+
+## License
+
+MIT
+
+---
+
+## Changelog
+
+### v2.0 (2025-01-06)
+- ✅ Auto-initialization on startup
+- ✅ Hooks system for invisible operation
+- ✅ Generic pattern extraction (no LLM required)
+- ✅ Multi-provider LLM support
+- ✅ Session cleanup tools
+
+### v1.0 (2025-01-05)
+- Initial release
+- Basic pattern learning
+- SQLite storage

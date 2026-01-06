@@ -1,0 +1,354 @@
+# Ralph Hooks System Guide
+
+**Make Ralph completely invisible - auto-recall context before every answer!**
+
+---
+
+## ⚠️ Important Update
+
+After reviewing the [official Claude hooks documentation](https://code.claude.com/docs/en/hooks), Ralph now uses **native Claude hooks** properly configured in `~/.claude/settings.json`.
+
+The previous `ralph-hooks.json` approach was **incorrect** - this guide now shows the proper implementation.
+
+---
+
+## Overview
+
+Ralph hooks use Claude's native `UserPromptSubmit` event to **automatically call `ralph_recall()`** before you answer questions about:
+- Implementation (how, create, implement, build)
+- Architecture (pattern, structure, design)
+- Code location (what file, where is, which component)
+
+### How It Works
+
+```
+User asks question
+        ↓
+┌─────────────────────────────────┐
+│  Claude Hook: UserPromptSubmit   │
+│  - Trigger: Every question      │
+│  - Type: prompt (LLM-based)      │
+│  - Action: Check if Ralph       │
+│           context is needed      │
+└────────────┬────────────────────┘
+             │
+             ↓
+┌─────────────────────────────────┐
+│  LLM evaluates the question     │
+│  - Is it about implementation?  │
+│  - Is it about architecture?    │
+│  - Is it about code location?   │
+└────────────┬────────────────────┘
+             │
+     If YES? │
+             ↓
+┌─────────────────────────────────┐
+│  Auto-call: ralph_recall()      │
+│  - Extract keywords             │
+│  - Retrieve patterns            │
+│  - Retrieve memories            │
+└────────────┬────────────────────┘
+             │
+             ↓
+┌─────────────────────────────────┐
+│  Claude answers WITH            │
+│  project-specific context       │
+└─────────────────────────────────┘
+```
+
+---
+
+## Configuration
+
+### File Location
+
+`~/.claude/settings.json`
+
+### Current Config
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are answering a user question. BEFORE answering, check if this requires Ralph context.\n\nQuestion: $USER_PROMPT\n\nIf question is about:\n- Implementation: how, create, implement, build, add\n- Architecture: pattern, structure, design, approach\n- Code location: what file, where is, which component\n\nThen CALL: ralph_recall(\"<extract keywords>\")\n\nExample:\n  \"How implement authentication?\" → ralph_recall(\"authentication implementation\")\n  \"Where is the User model?\" → ralph_recall(\"user model location\")\n\nAnswer WITH retrieved context, not generic knowledge.",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[Ralph] Session started - Auto-learning enabled' >&2",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Hook Types
+
+### UserPromptSubmit Hook
+
+**Event**: Fires when user submits a question/prompt
+**Type**: `prompt` (LLM-based evaluation)
+**Matcher**: `*` (all questions)
+
+**What it does**:
+1. LLM reads the user's question
+2. LLM checks if it's about implementation/architecture/location
+3. If YES, LLM extracts keywords and calls `ralph_recall()`
+4. Claude answers WITH the retrieved context
+
+### SessionStart Hook
+
+**Event**: Fires when Claude starts or resumes
+**Type**: `command` (shell script)
+**Matcher**: `startup|resume`
+
+**What it does**:
+- Shows a message that Ralph is active
+- Ralph MCP server auto-initializes in the background
+
+---
+
+## Examples
+
+### Example 1: Authentication Question
+
+```bash
+User: "How do I implement authentication?"
+        ↓
+Hook: UserPromptSubmit triggers
+        ↓
+LLM: This is about implementation → extract "authentication"
+        ↓
+Call: ralph_recall("authentication")
+        ↓
+Ralph returns: BetterAuth with Paseto V4 tokens
+        ↓
+Claude: "Based on your BetterAuth setup with Paseto V4 tokens..."
+```
+
+### Example 2: File Location Question
+
+```bash
+User: "Where is the User model?"
+        ↓
+Hook: UserPromptSubmit triggers
+        ↓
+LLM: This is about code location → extract "user model location"
+        ↓
+Call: ralph_recall("user model location")
+        ↓
+Ralph returns: src/Model/User.php
+        ↓
+Claude: "Your User model is in src/Model/User.php"
+```
+
+### Example 3: Architecture Question
+
+```bash
+User: "What's the authentication pattern?"
+        ↓
+Hook: UserPromptSubmit triggers
+        ↓
+LLM: This is about architecture → extract "authentication pattern"
+        ↓
+Call: ralph_recall("authentication pattern")
+        ↓
+Ralph returns: BetterAuth architecture details
+        ↓
+Claude: "Your project uses BetterAuth with this architecture..."
+```
+
+---
+
+## Customization
+
+### Adjust the Prompt
+
+Edit `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Custom prompt here...\n\nAdd your own triggers and logic.",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Add More Categories
+
+```json
+{
+  "prompt": "If question is about:\n- Implementation: how, create, implement\n- Architecture: pattern, structure, design\n- Code location: what file, where is\n- Testing: test, spec, coverage\n- Deployment: deploy, production, staging\n\nThen CALL: ralph_recall(\"<keywords>\")"
+}
+```
+
+### Change Timeout
+
+```json
+{
+  "timeout": 20  // Increase for complex evaluations
+}
+```
+
+---
+
+## Troubleshooting
+
+### Hooks Not Firing
+
+**Check 1**: Verify hooks are registered
+```bash
+# In Claude, run:
+/hooks
+```
+
+**Check 2**: Verify JSON syntax
+```bash
+cat ~/.claude/settings.json | python3 -m json.tool
+```
+
+**Check 3**: Check for syntax errors in settings
+```bash
+claude --debug
+# Look for hook-related errors
+```
+
+### Ralph Recall Not Called
+
+**Problem**: Hook fires but `ralph_recall()` isn't called
+
+**Solution**:
+- The LLM evaluation decided the question didn't need Ralph context
+- This is expected for simple questions like "hello", "thanks", etc.
+
+### Too Many Ralph Calls
+
+**Problem**: Every question triggers `ralph_recall()`
+
+**Solution**: Make the prompt more selective:
+```json
+{
+  "prompt": "ONLY call ralph_recall for:\n- Implementation questions with 'how', 'create'\n- Architecture questions with 'pattern', 'design'\n\nSKIP for: simple questions, greetings, thanks"
+}
+```
+
+---
+
+## Debugging
+
+### Enable Debug Mode
+
+```bash
+claude --debug
+```
+
+### Check Hook Execution
+
+Look for lines like:
+```
+[DEBUG] Hook fired: UserPromptSubmit
+[DEBUG] Prompt evaluation result: ...
+```
+
+### View Ralph Context
+
+```bash
+# See what Ralph knows
+ralph_list_patterns()
+ralph_session_info()
+```
+
+---
+
+## Performance
+
+| Operation | Time | Impact |
+|-----------|------|--------|
+| Hook trigger | <1ms | Negligible |
+| LLM evaluation | ~100ms | Once per question |
+| ralph_recall | ~50ms | Only if needed |
+| **Total overhead** | **~150ms** | Minimal for UX |
+
+---
+
+## Best Practices
+
+1. **Start with default config** - Works well for most cases
+2. **Monitor performance** - Use `--debug` to check overhead
+3. **Adjust prompt gradually** - Fine-tune for your workflow
+4. **Keep it simple** - Complex prompts slow down evaluation
+5. **Test offline** - Verify Ralph works without hooks first
+
+---
+
+## Advanced: Multiple Hooks
+
+You can combine Ralph hooks with other hooks:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Ralph context check..."
+          },
+          {
+            "type": "command",
+            "command": "echo \"Question: $USER_PROMPT\" >> ~/questions.log"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Migration from Old Config
+
+If you were using the old `ralph-hooks.json` approach:
+
+1. **Delete old file**: `rm ~/.claude/ralph-hooks.json`
+2. **New config is already in**: `~/.claude/settings.json`
+3. **Everything works automatically** - no changes needed!
+
+---
+
+## See Also
+
+- [Main Documentation](./index.mdx)
+- [Claude Hooks Reference](https://code.claude.com/docs/en/hooks)
+- [Examples](./examples.mdx)

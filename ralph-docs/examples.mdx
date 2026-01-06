@@ -1,0 +1,398 @@
+# Ralph Usage Examples
+
+Real-world examples of using Ralph MCP in your development workflow.
+
+---
+
+## Table of Contents
+
+1. [Quick Start Examples](#quick-start-examples)
+2. [Framework-Specific Examples](#framework-specific-examples)
+3. [Common Workflows](#common-workflows)
+4. [Advanced Scenarios](#advanced-scenarios)
+
+---
+
+## Quick Start Examples
+
+### Example 1: First Time Setup
+
+```bash
+# Just start working - Ralph auto-initializes
+cd my-symfony-project
+
+# Ralph automatically:
+# ✅ Creates session
+# ✅ Detects: Symfony framework
+# ✅ Learns: MVC pattern, controllers, services
+# ✅ Ready to assist!
+
+# Now ask anything
+"How do I create a controller?"
+→ Ralph recalls: "This project uses Symfony controllers in src/Controller/"
+→ Answer is project-specific!
+```
+
+### Example 2: Project Context Recall
+
+```bash
+# After working for a while, Ralph has learned patterns
+
+"Where is the authentication logic?"
+→ ralph_recall("authentication")
+→ Returns: "BetterAuth with Paseto V4 in src/Security/"
+→ Answer: "Based on your BetterAuth setup..."
+
+"How do I add a new OAuth provider?"
+→ ralph_recall("oauth provider")
+→ Returns: "OAuth providers in src/Provider/, Google is stable"
+→ Answer: "You can add providers like the existing Google one..."
+```
+
+---
+
+## Framework-Specific Examples
+
+### Symfony Examples
+
+#### Authentication Setup
+
+```bash
+User: "How do I implement authentication?"
+Ralph: → recalls BetterAuth patterns
+Answer: "Your project uses BetterAuth with:
+- Paseto V4 tokens (not JWT)
+- TokenService in betterauth-core/src/core/
+- Symfony integration in betterauth-symfony/
+
+To implement auth, use the existing TokenAuthenticator..."
+```
+
+#### Controller Creation
+
+```bash
+User: "Create a UserController"
+Ralph: → recalls controller patterns
+Answer: "Based on your project structure:
+1. Create src/Controller/UserController.php
+2. Extend your AbstractController
+3. Use the existing TokenService for auth"
+```
+
+### Next.js Examples
+
+#### Server Actions
+
+```bash
+User: "How do I add server actions?"
+Ralph: → recalls Next.js patterns
+Answer: "Your project uses Next.js 14 with App Router:
+- Create app/actions/users.ts
+- Export 'use server' functions
+- Use zod for validation (already installed)"
+```
+
+#### Data Fetching
+
+```bash
+User: "How do I fetch data in a component?"
+Ralph: → recalls data fetching patterns
+Answer: "Your project uses:
+- Server Components by default
+- fetch() with revalidation
+- Example in app/users/page.tsx"
+```
+
+### Laravel Examples
+
+#### Eloquent Models
+
+```bash
+User: "Create a Post model"
+Ralph: → recalls Laravel patterns
+Answer: "Based on your project:
+1. php artisan make:model Post
+2. Add fillable properties
+3. Follow existing User model structure"
+```
+
+---
+
+## Common Workflows
+
+### Workflow 1: Learning a New Codebase
+
+```bash
+# Step 1: Open project
+cd unknown-project
+
+# Ralph auto-initializes and learns patterns
+
+# Step 2: Explore
+"What framework does this use?"
+→ Ralph: "Detected: Django with REST framework"
+
+"How is authentication handled?"
+→ Ralph: "Found: JWT authentication in api/auth.py"
+
+# Step 3: Start working
+"Add a new endpoint"
+→ Ralph recalls existing endpoint patterns
+→ Answer follows project conventions
+```
+
+### Workflow 2: Bug Fixing
+
+```bash
+# Bug report
+"Users can't login after password reset"
+
+# Ralph recalls context
+→ ralph_recall("password reset login")
+→ Returns: "Password reset uses TokenService.refresh()"
+
+# Root cause analysis
+→ Ralph knows: "Refresh tokens are one-time use"
+→ Answer: "Check if reset token is being consumed twice"
+```
+
+### Workflow 3: Feature Addition
+
+```bash
+# Request
+"Add OAuth login with GitHub"
+
+# Ralph recalls existing OAuth
+→ ralph_recall("oauth github")
+→ Returns: "OAuth providers in src/Provider/, Google is stable"
+
+# Implementation guidance
+→ Answer: "Copy GoogleProvider structure:
+1. Create GitHubProvider
+2. Add to provider list
+3. Follow Google's token flow"
+```
+
+---
+
+## Advanced Scenarios
+
+### Scenario 1: Multi-Project Development
+
+```bash
+# Project A: Symfony
+cd ~/projects/symfony-app
+# Ralph loads Symfony session
+
+# Later, switch projects
+cd ~/projects/nextjs-app
+# Ralph auto-switches to Next.js session
+
+# Context is always correct!
+"How do I create a controller?"
+→ In Symfony: "Use src/Controller/"
+→ In Next.js: "Use app/routes/ or Server Actions"
+```
+
+### Scenario 2: Team Collaboration
+
+```bash
+# Teammate works on project
+# Ralph learns their patterns
+
+# You join project
+cd ~/shared-project
+
+# Ralph recalls team's decisions
+"Where do we put API clients?"
+→ Ralph: "Team decided: lib/api/ (see memory from 2 days ago)"
+
+# Consistent patterns across team!
+```
+
+### Scenario 3: Legacy Code Migration
+
+```bash
+# Old codebase
+cd legacy-php-app
+
+# Ralph learns legacy patterns
+"Show me the authentication flow"
+→ Ralph: "Found: session-based auth in old/auth.php"
+
+# Start modernization
+"Migrate to BetterAuth"
+→ Ralph knows both:
+  - Old: session-based
+  - New: BetterAuth with Paseto
+→ Provides migration guide
+```
+
+---
+
+## Real-World Conversations
+
+### Conversation 1: BetterAuth Integration
+
+```bash
+User: "How do I integrate BetterAuth into Symfony?"
+
+Claude: Let me check your project context...
+[Ralph recalls: "Project has BetterAuth in betterauth-core/"]
+
+Claude: Your project already has BetterAuth! Here's how to use it:
+
+1. Your Symfony integration is in betterauth-symfony/
+2. Use the BetterAuthAuthenticator in security.yaml
+3. Example from your TokenServiceWrapper:
+
+```php
+// src/Security/BetterAuthAuthenticator.php
+$tokenService->verify($request->headers->get('Authorization'));
+```
+
+Would you like me to show you the complete setup?"
+```
+
+### Conversation 2: Adding OAuth Provider
+
+```bash
+User: "Add GitHub OAuth"
+
+Claude: [Ralph recalls: "OAuth providers in src/Provider/, Google is stable"]
+
+Based on your existing Google provider, here's how to add GitHub:
+
+1. Copy GoogleProvider structure
+2. GitHub OAuth endpoints:
+   - Authorization: https://github.com/login/oauth/authorize
+   - Token: https://github.com/login/oauth/access_token
+
+3. Your project's pattern (from GoogleProvider):
+```php
+<?php
+// BetterAuth uses this pattern
+public function getScopes(): array {
+    return ['read:user', 'user:email'];
+}
+
+public function getUser(string $token): array {
+    // GitHub API call
+}
+```
+
+Want me to create the GitHubProvider class?"
+```
+
+### Conversation 3: Debugging Token Issues
+
+```bash
+User: "Tokens are expiring too early"
+
+Claude: [Ralph recalls: "Paseto V4 tokens, 1 hour access, 30 day refresh"]
+
+Ah! Looking at your BetterAuth setup:
+
+Your TokenService (betterauth-core/src/core/TokenService.php):
+- Access tokens: 3600s (1 hour) ✅
+- Refresh tokens: 30 days ✅
+
+Common issue: You might be checking expiration wrong. From your code:
+
+```php
+// ❌ Don't check access token expiration
+if ($token->isExpired()) { ... }
+
+// ✅ Use refresh token instead
+if ($accessToken->isExpired()) {
+    $tokens = $this->refresh($refreshToken);
+}
+```
+
+Should I check your token validation logic?"
+```
+
+---
+
+## Tips & Tricks
+
+### Tip 1: Use Specific Queries
+
+```bash
+# ❌ Too vague
+"How does it work?"
+
+# ✅ Specific
+"How does Paseto token validation work?"
+→ Ralph returns precise patterns
+```
+
+### Tip 2: Check What Ralph Knows
+
+```bash
+# See all patterns
+ralph_list_patterns()
+
+# Search for something specific
+ralph_search("authentication")
+
+# Get session info
+ralph_session_info()
+```
+
+### Tip 3: Add Custom Memories
+
+```bash
+# Important decision
+ralph_add_memory(
+  "Always use Paseto V4 for new features",
+  category="decision",
+  priority="high"
+)
+
+# Ralph will recall this automatically
+```
+
+---
+
+## Troubleshooting Examples
+
+### Problem 1: Ralph Returns Empty
+
+```bash
+User: "How do I implement X?"
+Claude: [No Ralph context]
+
+# Solution: Ralph hasn't learned yet
+ralph_learn_pattern("My Pattern", project_path=".")
+
+# Or check if session exists
+ralph_session_info()
+```
+
+### Problem 2: Wrong Context
+
+```bash
+# Ralph returns Next.js patterns but you're in Symfony
+# Solution: Check project path
+pwd  # Should match session's project_path
+
+# Or restore correct session
+ralph_list_sessions()  # Find your session
+ralph_restore_session("session-id")
+```
+
+### Problem 3: Too Many Test Sessions
+
+```bash
+# Cleanup test data
+ralph_cleanup_sessions(mode="delete_test", confirm=true)
+```
+
+---
+
+## See Also
+
+- [Main Documentation](./index.mdx)
+- [Hooks Guide](./hooks-guide.mdx)
+- [API Reference](./api-reference.mdx)

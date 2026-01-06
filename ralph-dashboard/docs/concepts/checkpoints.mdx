@@ -1,0 +1,92 @@
+# Checkpoints
+
+Save and restore session states with Checkpoints.
+
+## What are Checkpoints?
+
+A checkpoint is a complete snapshot of your Claude Code session at a specific point in time. It includes:
+
+- Full conversation history
+- File context
+- Current task state
+- Associated memories
+
+## Creating Checkpoints
+
+### Basic Checkpoint
+
+```typescript
+ralph_checkpoint('Feature complete - ready for testing')
+```
+
+### Checkpoint with State
+
+```typescript
+ralph_checkpoint('Before major refactor', {
+  state: {
+    filesModified: 15,
+    testsPassing: true,
+    bugsFixed: 3,
+  },
+})
+```
+
+## Checkpoint Structure
+
+```typescript
+interface Checkpoint {
+  id: string
+  label: string
+  project: string
+  contextUsage: number
+  tokens: number
+  memoriesCount: number
+  createdAt: string
+  state?: Record<string, any>
+}
+```
+
+## Restoring Checkpoints
+
+### From Dashboard
+
+1. Go to **Checkpoints** page
+2. Find your checkpoint
+3. Click **Restore**
+4. Claude Code session resumes
+
+### Via MCP
+
+```typescript
+ralph_restore_checkpoint('cp-001')
+```
+
+## Checkpoint Strategies
+
+### Before Major Changes
+
+```typescript
+ralph_checkpoint('Before implementing auth system')
+// ... work on auth ...
+ralph_checkpoint('Auth system complete')
+```
+
+### Experimentation Branches
+
+```typescript
+ralph_checkpoint('Trying approach A')
+// ... if it doesn't work ...
+ralph_restore_checkpoint('before-experiment')
+ralph_checkpoint('Trying approach B')
+```
+
+### Debugging Sessions
+
+```typescript
+ralph_checkpoint('Bug: User not authenticated')
+// ... debug and fix ...
+ralph_checkpoint('Bug fixed - authentication working')
+```
+
+> **Info:**
+> **Checkpoint Size**: Checkpoints are compressed automatically. A typical checkpoint uses ~1-5MB of storage.

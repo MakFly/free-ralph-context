@@ -1,0 +1,178 @@
+# MCP Tools Reference
+
+Complete reference for Ralph MCP tools.
+
+## Context Management
+
+### `ralph_status`
+
+Get current Ralph status.
+
+```typescript
+const status = await ralph_status()
+// Returns: RalphStatus
+```
+
+### `ralph_compress`
+
+Compress current context using AI.
+
+```typescript
+interface CompressOptions {
+  targetRatio?: number // Target compression ratio (0.25 = 25%)
+  preserveRecent?: number // Messages to preserve (default: 50)
+  dryRun?: boolean // Preview without applying
+}
+
+const result = await ralph_compress({
+  targetRatio: 0.3,
+  preserveRecent: 50,
+})
+```
+
+### `ralph_checkpoint`
+
+Create a session checkpoint.
+
+```typescript
+interface CheckpointOptions {
+  label: string
+  state?: Record<string, any>
+  includeMemories?: boolean
+}
+
+const checkpoint = await ralph_checkpoint({
+  label: 'Before major refactor',
+  state: { phase: 'pre-refactor' },
+})
+```
+
+### `ralph_spawn`
+
+Spawn a new session.
+
+```typescript
+interface SpawnOptions {
+  keepMemories?: boolean
+  keepFiles?: string[]
+  clearHistory?: boolean
+  summary?: boolean
+  label?: string
+}
+
+const newSession = await ralph_spawn({
+  keepMemories: true,
+  clearHistory: true,
+  label: 'Fresh start',
+})
+```
+
+## Memory Operations
+
+### `ralph_add_memory`
+
+Store important information.
+
+```typescript
+interface MemoryOptions {
+  content: string
+  category: 'decision' | 'action' | 'error' | 'progress' | 'context' | 'other'
+  priority: 'high' | 'normal' | 'low'
+  metadata?: Record<string, any>
+}
+
+const memory = await ralph_add_memory({
+  content: 'Chose Postgres over MongoDB for relational data',
+  category: 'decision',
+  priority: 'high',
+})
+```
+
+### `ralph_search_memories`
+
+Search stored memories.
+
+```typescript
+interface SearchOptions {
+  query: string
+  category?: string
+  project?: string
+  priority?: string
+  limit?: number
+}
+
+const results = await ralph_search_memories({
+  query: 'database',
+  category: 'decision',
+  limit: 10,
+})
+```
+
+### `ralph_curate`
+
+Let AI review and organize memories.
+
+```typescript
+const curated = await ralph_curate({
+  currentTask: 'Implementing authentication',
+})
+// Returns: memories to keep, merge, or discard
+```
+
+## Advanced Operations
+
+### `ralph_fold`
+
+Fold context with specific strategy.
+
+```typescript
+interface FoldOptions {
+  segments: string[]
+  strategy: 'recursive' | 'hierarchical' | 'selective'
+}
+
+await ralph_fold({
+  segments: ['old-conversations', 'resolved-errors'],
+  strategy: 'hierarchical',
+})
+```
+
+### `ralph_should_spawn`
+
+Check if spawning is recommended.
+
+```typescript
+interface ShouldSpawnOptions {
+  contextUsage: number // Current usage (0-1)
+  loopDetected: boolean // Is conversation looping?
+  consecutiveErrors: number // Error count
+  taskProgress: number // Task completion (0-1)
+}
+
+const recommendation = await ralph_should_spawn({
+  contextUsage: 0.9,
+  loopDetected: false,
+  consecutiveErrors: 0,
+  taskProgress: 0.5,
+})
+// Returns: { shouldSpawn: boolean, reason: string }
+```
+
+## Utility Functions
+
+### `ralph_free`
+
+Terminate Ralph session.
+
+```typescript
+await ralph_free({ createFinalCheckpoint: true })
+```
+
+### `ralph_get_status`
+
+Get current status information.
+
+```typescript
+const status = await ralph_get_status()
+// Returns: { contextUsage, memoriesCount, sessionInfo }
+```

@@ -7,7 +7,6 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { useRalphFiles } from '@/hooks/use-ralph-files'
 import { MemoriesSection } from '@/components/sections/memories-section'
 import { StatusSection } from '@/components/sections/status-section'
-import { SuggestionsSection } from '@/components/sections/suggestions-section'
 import { TokensSection } from '@/components/sections/tokens-section'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -49,8 +48,6 @@ function DashboardSkeleton() {
 export function DashboardPage() {
   const {
     memories,
-    suggestions,
-    optimizerState,
     systemStatus,
     recentMemories,
     tokenSavings,
@@ -125,22 +122,10 @@ export function DashboardPage() {
             </h2>
             <StatusSection
               systemStatus={systemStatus}
-              optimizerState={optimizerState}
               formatRelativeTime={formatRelativeTime}
             />
           </div>
         </div>
-
-        {/* Suggestions */}
-        {suggestions.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-sm font-medium flex items-center gap-2">
-              <Brain className="h-4 w-4 text-muted-foreground" />
-              Ralph Suggestions
-            </h2>
-            <SuggestionsSection suggestions={suggestions} />
-          </div>
-        )}
 
         {/* Recent Memories */}
         <div className="space-y-2">

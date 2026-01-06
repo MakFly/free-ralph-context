@@ -1,21 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getMemories,
-  getSuggestions,
-  getOptimizerState,
-  getSystemStatus,
   type RalphMemory,
-  type RalphSuggestion,
-  type OptimizerState,
 } from '@/api/ralph'
 
 export interface SystemStatus {
   isActive: boolean
   totalMemories: number
   lastActivity: string | null
-  optimizationCount: number
-  lastOptimization: string | null
-  hooksEnabled: boolean
 }
 
 // Calculate token savings estimate
@@ -52,20 +44,12 @@ function formatRelativeTime(timestamp: string): string {
 // Main hook
 export function useRalphFiles() {
   const [memories, setMemories] = useState<RalphMemory[]>([])
-  const [suggestions, setSuggestions] = useState<RalphSuggestion[]>([])
-  const [optimizerState, setOptimizerState] = useState<OptimizerState | null>(
-    null,
-  )
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
-    isActive: false,
+    isActive: true,
     totalMemories: 0,
     lastActivity: null,
-    optimizationCount: 0,
-    lastOptimization: null,
-    hooksEnabled: false,
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const initializedRef = useRef(false)
 
@@ -74,32 +58,24 @@ export function useRalphFiles() {
     try {
       if (isInitial) {
         setIsLoading(true)
-      } else {
-        setIsRefreshing(true)
       }
       setError(null)
 
-      // Call server functions in parallel
-      const [memoriesData, suggestionsData, optimizerData, statusData] =
-        await Promise.all([
-          getMemories(),
-          getSuggestions(),
-          getOptimizerState(),
-          getSystemStatus(),
-        ])
+      // Get memories
+      const memoriesData = await getMemories()
 
       setMemories(memoriesData.memories)
-      setSuggestions(suggestionsData.suggestions)
-      setOptimizerState(optimizerData.state)
-      setSystemStatus(statusData)
+      setSystemStatus({
+        isActive: true,
+        totalMemories: memoriesData.totalMemories,
+        lastActivity: memoriesData.lastActivity,
+      })
     } catch (err) {
       console.error('Failed to fetch Ralph data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load data')
     } finally {
       if (isInitial) {
         setIsLoading(false)
-      } else {
-        setIsRefreshing(false)
       }
     }
   }, [])
@@ -114,7 +90,7 @@ export function useRalphFiles() {
 
   // Calculate derived stats
   const tokenSavings = calculateTokenSavings(memories)
-  const recentMemories = memories.slice(0, 10) // Last 10 memories
+  const recentMemories = memories.slice(0, 10)
   const categoryCounts = memories.reduce(
     (acc, mem) => {
       acc[mem.category] = (acc[mem.category] || 0) + 1
@@ -124,26 +100,14 @@ export function useRalphFiles() {
   )
 
   return {
-    // Raw data
     memories,
-    suggestions,
-    optimizerState,
     systemStatus,
-
-    // Derived data
     recentMemories,
     categoryCounts,
     tokenSavings,
-
-    // UI helpers
     formatRelativeTime,
-
-    // State
     isLoading,
-    isRefreshing,
     error,
-
-    // Actions
     refresh: () => fetchData(false),
   }
 }

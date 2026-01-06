@@ -71,147 +71,75 @@ interface ApiResponse<T = any> {
   error?: string
 }
 
-// Server function: Get memories from SQLite
-export const getMemories = createServerFn({ method: 'GET' }).handler(
-  async () => {
+// Server function: Get memories (GET - no params needed)
+export const getMemories = createServerFn({ method: 'GET' }).handler(async () => {
+  const database = getDb()
+
+  const memories = database
+    .prepare(
+      `SELECT id, session_id, content, category, priority, created_at
+       FROM memories
+       ORDER BY created_at DESC
+       LIMIT 100`,
+    )
+    .all() as RalphMemory[]
+
+  return {
+    memories,
+    totalMemories: memories.length,
+    lastActivity: memories.length > 0 ? memories[0].created_at : null,
+  }
+})
+
+// Single unified server function for other operations
+export const ralphApi = createServerFn({ method: 'POST' })
+  .handler(async (input: { action: string; params?: any }) => {
+    const { action, params } = input
+    const database = getDb()
+
     try {
-      const database = getDb()
+      switch (action) {
+        case 'searchMemories': {
+          const query = params?.query || ''
+          const results = database
+            .prepare(
+              `SELECT id, session_id, content, category, priority, created_at
+               FROM memories
+               WHERE content LIKE ?
+               ORDER BY created_at DESC
+               LIMIT 20`,
+            )
+            .all(`%${query}%`) as RalphMemory[]
 
-      // Get recent memories
-      const memories = database
-        .prepare(
-          `SELECT id, session_id, content, category, priority, created_at
-           FROM memories
-           ORDER BY created_at DESC
-           LIMIT 100`,
-        )
-        .all() as RalphMemory[]
+          return results
+        }
 
-      const lastActivity =
-        memories.length > 0 ? memories[0].created_at : null
+        case 'getStats': {
+          const stats = database
+            .prepare(
+              `SELECT category, COUNT(*) as count
+               FROM memories
+               GROUP BY category`,
+            )
+            .all() as Array<{ category: string; count: number }>
 
-      return {
-        memories,
-        totalMemories: memories.length,
-        lastActivity,
+          return { stats, total: stats.reduce((sum, s) => sum + s.count, 0) }
+        }
+
+        default:
+          return { error: 'Unknown action' }
       }
     } catch (error) {
-      console.error('Failed to fetch memories:', error)
-      return { memories: [], totalMemories: 0, lastActivity: null }
-    }
-  },
-)
-
-// Server function: Get suggestions (placeholder - will be implemented with hooks)
-export const getSuggestions = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    // For now, return empty suggestions
-    // This will be populated by the hooks system
-    return { suggestions: [] }
-  },
-)
-
-// Server function: Get optimizer state (placeholder)
-export const getOptimizerState = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    // For now, return default state
-    // This will be populated by the compression system
-    return {
-      state: {
-        last_check: null,
-        memory_count: 0,
-        optimization_count: 0,
-        last_compression: null,
-        last_curation: null,
-      },
-    }
-  },
-)
-
-// Server function: Get system status
-export const getSystemStatus = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    // Backend API removed - return default inactive status
-    return {
-      isActive: false,
-      totalMemories: 0,
-      lastActivity: null,
-      optimizationCount: 0,
-      lastOptimization: null,
-      hooksEnabled: false,
-    }
-  },
-)
-
-// Server function: Search memories
-export const searchMemoriesFn = createServerFn({ method: 'POST' })
-  .handler(async (query: string) => {
-    try {
-      const database = getDb()
-
-      // Use LIKE search on content
-      const results = database
-        .prepare(
-          `SELECT id, session_id, content, category, priority, created_at
-           FROM memories
-           WHERE content LIKE ?
-           ORDER BY created_at DESC
-           LIMIT 20`,
-        )
-        .all(`%${query}%`) as RalphMemory[]
-
-      return results
-    } catch (error) {
-      console.error('Search failed:', error)
-      return []
+      console.error('Ralph API error:', error)
+      return { error: 'Database error' }
     }
   })
 
-// Wrapper for backward compatibility
-export async function searchMemories(
-  query: string,
-  limit = 20,
-): Promise<RalphMemory[]> {
-  return searchMemoriesFn(query)
+// Convenience wrappers
+export async function searchMemories(query: string, limit = 20) {
+  return ralphApi({ action: 'searchMemories', params: { query } })
 }
 
-// Server function: Get insights
-export const getInsightsFn = createServerFn({ method: 'POST' })
-  .handler(async (projectPath: string) => {
-    try {
-      const database = getDb()
-
-      const insights = database
-        .prepare(
-          `SELECT id, session_id, project_path, timestamp, type,
-                  title, content, category, confidence, tokens_saved
-           FROM insights
-           WHERE project_path = ?
-           ORDER BY timestamp DESC
-           LIMIT 10`,
-        )
-        .all(projectPath) as RalphInsight[]
-
-      return insights
-    } catch (error) {
-      console.error('Failed to fetch insights:', error)
-      return []
-    }
-  })
-
-// Wrapper for backward compatibility
-export async function getInsights(
-  projectPath: string,
-  limit = 10,
-): Promise<RalphInsight[]> {
-  return getInsightsFn(projectPath)
-}
-
-function inferSuggestionType(title: string): RalphSuggestion['type'] {
-  const lower = title.toLowerCase()
-  if (lower.includes('commit') || lower.includes('git')) return 'commit'
-  if (lower.includes('test')) return 'add_tests'
-  if (lower.includes('doc')) return 'add_docs'
-  if (lower.includes('compress') || lower.includes('fold')) return 'compress'
-  return 'custom'
+export async function getStats() {
+  return ralphApi({ action: 'getStats' })
 }

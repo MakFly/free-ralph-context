@@ -71,7 +71,7 @@ searchRouter.post('/', zValidator('json', searchSchema), async (c) => {
         type: r.type,
         contextId: r.contextId,
         stack: r.stack,
-        createdAt: r.metadata.createdAt,
+        createdAt: r.metadata?.createdAt || r.createdAt,
         excerpt: r.excerpt, // NEW: Compact excerpt instead of full content
       },
       context: r.contextName ? {

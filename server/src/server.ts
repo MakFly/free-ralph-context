@@ -36,19 +36,13 @@ import {
 
 import {
   addMemory,
-  getMemory,
-  listMemories,
   deleteMemory,
   updateMemory,
 } from './tools/memory.js';
 
-import { searchMemories, fuzzySearchMemories } from './tools/search.js';
 import { searchMemories as searchMemoriesFirst } from './tools/search-first.js';
 
-// Import new automation tools
-import { autoAnalyzeContext } from './tools/auto-analyze.js';
-import { smartSearch } from './tools/smart-search.js';
-import { findRelationships } from './tools/find-relationships.js';
+// Import automation tools (cleaned up - removed redundant search variants)
 import { autoSaveMemory } from './tools/auto-save.js';
 import { mgrep, mgrepFiles } from './tools/mgrep.js';
 
@@ -311,22 +305,8 @@ export async function createServer() {
           },
         },
         {
-          name: 'get_memory',
-          description: 'Get details of a specific memory',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              memoryId: {
-                type: 'string',
-                description: 'ID of the memory to retrieve',
-              },
-            },
-            required: ['memoryId'],
-          },
-        },
-        {
           name: 'search_memories',
-          description: 'Search-First tool: Find memories with compact excerpts. Use this BEFORE list_memories to avoid token overload. Returns lightweight results (~70 tokens per memory vs 1500+). Use get_memory() to retrieve full content only for selected results.',
+          description: 'Search-First tool: Find memories with compact excerpts (~70 tokens per memory). Use expand_memory() to retrieve full content for selected results.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -362,34 +342,6 @@ export async function createServer() {
               },
             },
             required: ['query'],
-          },
-        },
-        {
-          name: 'list_memories',
-          description: '[DEPRECATED] Use search_memories instead for better token efficiency. List memories with optional filters. WARNING: Returns full content which can consume 10k+ tokens.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              contextId: {
-                type: 'string',
-                description: 'Filter by context ID',
-              },
-              type: {
-                type: 'string',
-                enum: ['note', 'conversation', 'snippet', 'reference', 'task', 'idea'],
-                description: 'Filter by memory type',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of memories to return',
-                default: 50,
-              },
-              offset: {
-                type: 'number',
-                description: 'Number of memories to skip',
-                default: 0,
-              },
-            },
           },
         },
         {
@@ -450,156 +402,7 @@ export async function createServer() {
             required: ['memoryId'],
           },
         },
-        // Search tool
-        {
-          name: 'search',
-          description: 'Full-text search across all memories',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Search query',
-                minLength: 1,
-              },
-              contextId: {
-                type: 'string',
-                description: 'Limit search to a specific context',
-              },
-              type: {
-                type: 'string',
-                enum: ['note', 'conversation', 'snippet', 'reference', 'task', 'idea'],
-                description: 'Limit search to a specific memory type',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results to return',
-                default: 20,
-              },
-            },
-            required: ['query'],
-          },
-        },
-        {
-          name: 'fuzzy_search',
-          description: 'Fuzzy search using Levenshtein distance to tolerate typos and partial matches. Searches in title, content, and tags. Returns results with a fuzzy score (0-1). Tolerates up to 2 character differences for short terms, more for longer terms.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Search query',
-                minLength: 1,
-              },
-              contextId: {
-                type: 'string',
-                description: 'Limit search to a specific context',
-              },
-              type: {
-                type: 'string',
-                enum: ['note', 'conversation', 'snippet', 'reference', 'task', 'idea'],
-                description: 'Limit search to a specific memory type',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results to return',
-                default: 20,
-              },
-              tolerance: {
-                type: 'number',
-                description: 'Maximum character differences allowed (0-10, default: 2). For short terms (<5 chars), uses this value directly. For longer terms, allows 40% length tolerance.',
-                default: 2,
-                minimum: 0,
-                maximum: 10,
-              },
-            },
-            required: ['query'],
-          },
-        },
         // Automation tools
-        {
-          name: 'auto_analyze_context',
-          description: 'Analyze a conversation and suggest an appropriate context based on keywords',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              conversation: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Array of conversation messages to analyze',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of similar contexts to return',
-                default: 5,
-              },
-            },
-            required: ['conversation'],
-          },
-        },
-        {
-          name: 'smart_search',
-          description: 'Hybrid search combining FTS5 and TF-IDF for better relevance ranking',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Search query',
-                minLength: 1,
-              },
-              contextId: {
-                type: 'string',
-                description: 'Limit search to a specific context',
-              },
-              type: {
-                type: 'string',
-                enum: ['note', 'conversation', 'snippet', 'reference', 'task', 'idea'],
-                description: 'Limit search to a specific memory type',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results to return',
-                default: 20,
-              },
-              minScore: {
-                type: 'number',
-                description: 'Minimum combined score (0-1) to include in results',
-                default: 0.1,
-              },
-            },
-            required: ['query'],
-          },
-        },
-        {
-          name: 'find_relationships',
-          description: 'Find connections between memories based on content similarity',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              memoryId: {
-                type: 'string',
-                description: 'ID of the memory to find relationships for',
-              },
-              threshold: {
-                type: 'number',
-                description: 'Minimum similarity threshold (0-1)',
-                default: 0.3,
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of relationships to return',
-                default: 10,
-              },
-              createRelationships: {
-                type: 'boolean',
-                description: 'Automatically create relationships for similar memories',
-                default: false,
-              },
-            },
-            required: ['memoryId'],
-          },
-        },
         {
           name: 'auto_save_memory',
           description: 'Intelligently save content with duplicate detection and auto-categorization',
@@ -828,30 +631,16 @@ export async function createServer() {
       // Memory tools
       case 'add_memory':
         return executeToolWithHooks(name, args, () => addMemory(args));
-      case 'get_memory':
-        return executeToolWithHooks(name, args, () => getMemory(args));
-      case 'list_memories':
-        return executeToolWithHooks(name, args, () => listMemories(args));
       case 'update_memory':
         return executeToolWithHooks(name, args, () => updateMemory(args));
       case 'delete_memory':
         return executeToolWithHooks(name, args, () => deleteMemory(args));
 
       // Search tools
-      case 'search':
-        return executeToolWithHooks(name, args, () => searchMemories(args));
       case 'search_memories':
         return executeToolWithHooks(name, args, () => searchMemoriesFirst(args));
-      case 'fuzzy_search':
-        return executeToolWithHooks(name, args, () => fuzzySearchMemories(args));
 
       // Automation tools
-      case 'auto_analyze_context':
-        return executeToolWithHooks(name, args, () => autoAnalyzeContext(args));
-      case 'smart_search':
-        return executeToolWithHooks(name, args, () => smartSearch(args));
-      case 'find_relationships':
-        return executeToolWithHooks(name, args, () => findRelationships(args));
       case 'auto_save_memory':
         return executeToolWithHooks(name, args, () => autoSaveMemory(args));
 

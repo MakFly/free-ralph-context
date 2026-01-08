@@ -232,7 +232,7 @@ export async function searchMemories(args: unknown): Promise<CallToolResult> {
             meta: {
               searchMethod: 'fts5_bm25',
               excerptStrategy: 'smart_context_aware',
-              recommend: 'Use get_memory() for full content of selected results',
+              recommend: 'Use expand_memory() for full content of selected results',
             },
           }, null, 2),
         },

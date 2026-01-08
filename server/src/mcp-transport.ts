@@ -10,11 +10,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import * as z from 'zod/v4';
 import * as contextTools from './tools/context.js';
 import * as memoryTools from './tools/memory.js';
-import * as searchTools from './tools/search.js';
 import * as searchFirstTools from './tools/search-first.js';
-import * as autoAnalyze from './tools/auto-analyze.js';
-import * as smartSearch from './tools/smart-search.js';
-import * as findRelationships from './tools/find-relationships.js';
 import * as autoSave from './tools/auto-save.js';
 import * as mgrepTools from './tools/mgrep.js';
 
@@ -129,35 +125,6 @@ function createMcpServer(): McpServer {
   );
 
   server.registerTool(
-    'get_memory',
-    {
-      description: 'Get details of a specific memory',
-      inputSchema: {
-        memoryId: z.string(),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await memoryTools.getMemory(args), null, 2) }],
-    })
-  );
-
-  server.registerTool(
-    'list_memories',
-    {
-      description: '[DEPRECATED] Use search_memories instead',
-      inputSchema: {
-        contextId: z.string().optional(),
-        type: z.enum(['note', 'conversation', 'snippet', 'reference', 'task', 'idea']).optional(),
-        limit: z.number().optional().default(50),
-        offset: z.number().optional().default(0),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await memoryTools.listMemories(args), null, 2) }],
-    })
-  );
-
-  server.registerTool(
     'update_memory',
     {
       description: 'Update an existing memory',
@@ -191,22 +158,6 @@ function createMcpServer(): McpServer {
 
   // Search tools
   server.registerTool(
-    'search',
-    {
-      description: 'Full-text search across all memories',
-      inputSchema: {
-        query: z.string().min(1),
-        contextId: z.string().optional(),
-        type: z.enum(['note', 'conversation', 'snippet', 'reference', 'task', 'idea']).optional(),
-        limit: z.number().optional().default(20),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await searchTools.searchMemories(args), null, 2) }],
-    })
-  );
-
-  server.registerTool(
     'search_memories',
     {
       description: 'Search-First tool: Find memories with compact excerpts',
@@ -224,71 +175,7 @@ function createMcpServer(): McpServer {
     })
   );
 
-  server.registerTool(
-    'fuzzy_search',
-    {
-      description: 'Fuzzy search using Levenshtein distance',
-      inputSchema: {
-        query: z.string().min(1),
-        contextId: z.string().optional(),
-        type: z.enum(['note', 'conversation', 'snippet', 'reference', 'task', 'idea']).optional(),
-        limit: z.number().optional().default(20),
-        tolerance: z.number().min(0).max(10).optional().default(2),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await searchTools.fuzzySearchMemories(args), null, 2) }],
-    })
-  );
-
   // Automation tools
-  server.registerTool(
-    'auto_analyze_context',
-    {
-      description: 'Analyze a conversation and suggest an appropriate context',
-      inputSchema: {
-        conversation: z.array(z.string()),
-        limit: z.number().optional().default(5),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await autoAnalyze.autoAnalyzeContext(args), null, 2) }],
-    })
-  );
-
-  server.registerTool(
-    'smart_search',
-    {
-      description: 'Hybrid search combining FTS5 and TF-IDF',
-      inputSchema: {
-        query: z.string().min(1),
-        contextId: z.string().optional(),
-        type: z.enum(['note', 'conversation', 'snippet', 'reference', 'task', 'idea']).optional(),
-        limit: z.number().optional().default(20),
-        minScore: z.number().optional().default(0.1),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await smartSearch.smartSearch(args), null, 2) }],
-    })
-  );
-
-  server.registerTool(
-    'find_relationships',
-    {
-      description: 'Find connections between memories based on similarity',
-      inputSchema: {
-        memoryId: z.string(),
-        threshold: z.number().optional().default(0.3),
-        limit: z.number().optional().default(10),
-        createRelationships: z.boolean().optional().default(false),
-      },
-    },
-    async (args) => ({
-      content: [{ type: 'text', text: JSON.stringify(await findRelationships.findRelationships(args), null, 2) }],
-    })
-  );
-
   server.registerTool(
     'auto_save_memory',
     {

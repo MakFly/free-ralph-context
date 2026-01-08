@@ -53,7 +53,7 @@ export function createAutoMemoizeHook(): PostHookFunction {
   return async (result: HookResult) => {
     if (!result.success) return;
 
-    const skipTools = ['auto_save_memory', 'add_memory', 'update_memory', 'list_memories', 'search', 'smart_search'];
+    const skipTools = ['auto_save_memory', 'add_memory', 'update_memory', 'search_memories', 'quick_search'];
     if (skipTools.includes(result.toolName)) return;
 
     const content = extractText(result.result);

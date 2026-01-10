@@ -76,7 +76,7 @@ export function SiteHeader() {
             ))}
           </nav>
         ) : (
-          <h1 className="text-base font-medium">ContextFree</h1>
+          <h1 className="text-base font-medium">nexus</h1>
         )}
 
         <div className="ml-auto flex items-center gap-2">

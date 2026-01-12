@@ -21,6 +21,7 @@ export interface FtsSearchOptions {
   limit?: number;
   offset?: number;
   highlight?: boolean;
+  projectId?: number;  // Filter by project_id for multi-tenant support
 }
 
 export interface FtsMatch {
@@ -53,11 +54,14 @@ export function ftsSearch(
   query: string,
   options: FtsSearchOptions = {}
 ): FtsSearchResult {
-  const { limit = 20, offset = 0 } = options;
+  const { limit = 20, offset = 0, projectId } = options;
   const startTime = Date.now();
 
   // Escape special FTS5 characters
   const escapedQuery = escapeQuery(query);
+
+  // Build WHERE clause for project filtering
+  const projectFilter = projectId ? 'AND f.project_id = ?' : '';
 
   // FTS5 search with BM25 ranking
   // bm25(chunks_fts) returns negative scores (more negative = more relevant)
@@ -75,20 +79,27 @@ export function ftsSearch(
     FROM chunks_fts
     JOIN chunks c ON chunks_fts.rowid = c.id
     JOIN files f ON c.file_id = f.id
-    WHERE chunks_fts MATCH ?
+    WHERE chunks_fts MATCH ? ${projectFilter}
     ORDER BY score DESC
     LIMIT ? OFFSET ?
   `;
 
-  const hits = db.query<FtsMatch>(sql, [escapedQuery, limit, offset]);
+  const params = projectId
+    ? [escapedQuery, projectId, limit, offset]
+    : [escapedQuery, limit, offset];
+
+  const hits = db.query<FtsMatch>(sql, params);
 
   // Get total count
   const countSql = `
     SELECT COUNT(*) as count
     FROM chunks_fts
-    WHERE chunks_fts MATCH ?
+    JOIN chunks c ON chunks_fts.rowid = c.id
+    JOIN files f ON c.file_id = f.id
+    WHERE chunks_fts MATCH ? ${projectFilter}
   `;
-  const countResult = db.queryOne<{ count: number }>(countSql, [escapedQuery]);
+  const countParams = projectId ? [escapedQuery, projectId] : [escapedQuery];
+  const countResult = db.queryOne<{ count: number }>(countSql, countParams);
 
   return {
     query,
@@ -186,15 +197,22 @@ export function formatWithPreview(match: FtsMatch, maxLines = 3): string {
  */
 function escapeQuery(query: string): string {
   // FTS5 special characters: " * - + ( ) : ^
-  // For simple keyword search, we wrap in quotes if it contains spaces
-  // and escape internal quotes
+  // Must wrap in quotes if query contains ANY special character
 
-  if (query.includes(' ') && !query.startsWith('"')) {
-    // Phrase search - wrap in quotes
+  // Already quoted - just escape internal quotes
+  if (query.startsWith('"') && query.endsWith('"')) {
+    return query;
+  }
+
+  // Check for FTS5 special characters that need escaping
+  const hasSpecialChars = /[\s\-\+\*\(\)\:\^]/.test(query);
+
+  if (hasSpecialChars) {
+    // Wrap in quotes to treat as literal phrase/term
     return `"${query.replace(/"/g, '""')}"`;
   }
 
-  // Single word - use as is (FTS5 handles it)
+  // Simple word without special chars - use as is
   return query;
 }
 

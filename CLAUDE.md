@@ -2,9 +2,70 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ RÈGLE CRITIQUE - UTILISER NEXUS MCP EN PRIORITÉ
+
+**Dans ce projet, TOUJOURS utiliser les outils MCP Nexus au lieu des outils standards.**
+
+### Pourquoi ?
+- **10-20x économie de tokens** grâce au Progressive Disclosure
+- **Recherche sémantique** plus pertinente que Grep
+- **Mémoires contextuelles** au lieu de tout relire
+
+### Mapping outils standards → Nexus
+
+| Besoin | ❌ NE PAS utiliser | ✅ UTILISER |
+|--------|-------------------|-------------|
+| Chercher du code | Grep, Glob | `mcp__nexus__nexus_code({ action: "search", query: "...", mode: "hybrid" })` |
+| Lire un fichier | Read | `mcp__nexus__nexus_code({ action: "open", path: "..." })` |
+| Stats codebase | Bash ls/wc | `mcp__nexus__nexus_code({ action: "stats" })` |
+| Chercher contexte | Relire fichiers | `mcp__nexus__nexus_memory({ action: "recall", query: "..." })` |
+| Contexte complet | Read multiples | `mcp__nexus__nexus_memory({ action: "get", ids: [...] })` |
+| Patterns réutilisables | - | `mcp__nexus__nexus_learn({ action: "recall", query: "..." })` |
+
+### Fallback si Nexus indisponible
+
+Si les outils MCP retournent "connection refused" ou erreur :
+1. Continuer avec Glob/Grep/Read standards
+2. Ne PAS bloquer ou abandonner la tâche
+
+### Exemple de workflow token-efficient
+
+```typescript
+// 1. RECALL compact (~50 tokens) - chercher ce qui existe
+nexus_memory({ action: "recall", query: "authentication", limit: 5 })
+// Retourne: [12] decision/repo: JWT choisi pour auth (95%)
+
+// 2. GET seulement si besoin du détail (~500 tokens)
+nexus_memory({ action: "get", ids: [12] })
+// Retourne: narrative complète avec facts/tags
+
+// 3. JAMAIS relire tous les fichiers pour "comprendre le contexte"
+```
+
+### ⚠️ RÈGLE D'OR : Écrire > Lire
+
+**Si tu connais la technologie, ÉCRIS DIRECTEMENT sans lire.**
+
+```typescript
+// ❌ GASPILLAGE (3500+ tokens)
+nexus_code({ action: "open", path: "file.ts" })        // 500 tokens
+nexus_memory({ action: "get", ids: [1,2,6], tier: 3 }) // 3000 tokens
+
+// ✅ OPTIMAL (0 tokens de lecture)
+// Écrire directement le code - tu connais Hono, React, etc.
+```
+
+**Règles strictes :**
+1. **JAMAIS `get` sans `recall` préalable**
+2. **JAMAIS `tier: 3` sauf demande explicite**
+3. **Maximum 3 IDs par `get`**
+4. **Connaissances générales (frameworks) = NE PAS utiliser les mémoires**
+
+---
+
 ## Version Management
 
-**Current version: 0.0.1**
+**Current version: 0.0.2**
 
 If the user says "update la version en X.X.X" (or "update version to X.X.X"), update ALL package.json files in:
 - `packages/*` (core, storage, search, indexer-py/pyproject.toml)

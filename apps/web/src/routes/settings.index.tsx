@@ -2,16 +2,18 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import {
   AlertTriangleIcon,
+  AlertCircleIcon,
   DatabaseIcon,
   RefreshCwIcon,
-  CheckCircle2Icon,
-  AlertCircleIcon,
+  FileCodeIcon,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { AppLayout } from '@/components/app-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNexusStore } from '@/stores/nexusStore'
 import { logger } from '@/lib/logger'
+import { SynthesisConfig } from '@/components/synthesis-config'
 
 export const Route = createFileRoute('/settings/')({
   component: SettingsPage,
@@ -45,9 +47,10 @@ function SettingsPage() {
   const [settings, setSettings] = useState<SettingsData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [isResettingIndex, setIsResettingIndex] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showConfirmIndex, setShowConfirmIndex] = useState(false)
   const [showClearCache, setShowClearCache] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [cacheSize, setCacheSize] = useState(0)
 
   const fetchSettings = async () => {
@@ -59,10 +62,9 @@ function SettingsPage() {
       if (!response.ok) throw new Error('Failed to fetch settings')
       const data = await response.json()
       setSettings(data)
-      setMessage(null)
     } catch (error) {
       logger.error('Failed to fetch settings', error, 'Settings')
-      setMessage({ type: 'error', text: 'Failed to load settings' })
+      toast.error('Failed to load settings')
     } finally {
       setIsLoading(false)
     }
@@ -85,7 +87,9 @@ function SettingsPage() {
         throw new Error(data.error || 'Failed to reset database')
       }
 
-      setMessage({ type: 'success', text: data.message || 'Database reset successfully' })
+      toast.success('Database reset', {
+        description: data.message || 'All data has been cleared'
+      })
       setShowConfirm(false)
 
       // Clear local projects cache and refresh from API
@@ -94,9 +98,45 @@ function SettingsPage() {
       setTimeout(() => fetchSettings(), 500)
     } catch (error) {
       logger.error('Failed to reset database', error, 'Settings')
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to reset database' })
+      toast.error('Failed to reset database', {
+        description: error instanceof Error ? error.message : 'An error occurred'
+      })
     } finally {
       setIsResetting(false)
+    }
+  }
+
+  const handleResetIndex = async () => {
+    if (!isConnected) return
+
+    setIsResettingIndex(true)
+    try {
+      const response = await fetch(`${apiBaseUrl}/settings/reset-index`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'RESET_INDEX_CONFIRM' }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset indexation')
+      }
+
+      toast.success('Indexation reset', {
+        description: data.message || 'All files and chunks have been deleted'
+      })
+      setShowConfirmIndex(false)
+
+      // Refresh settings after reset
+      setTimeout(() => fetchSettings(), 500)
+    } catch (error) {
+      logger.error('Failed to reset indexation', error, 'Settings')
+      toast.error('Failed to reset indexation', {
+        description: error instanceof Error ? error.message : 'An error occurred'
+      })
+    } finally {
+      setIsResettingIndex(false)
     }
   }
 
@@ -111,7 +151,9 @@ function SettingsPage() {
       localStorage.clear()
       setCacheSize(0)
       setShowClearCache(false)
-      setMessage({ type: 'success', text: 'Local cache cleared. Refreshing...' })
+      toast.success('Cache cleared', {
+        description: 'Refreshing page...'
+      })
       setTimeout(() => window.location.reload(), 1000)
     }
   }
@@ -269,6 +311,9 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Synthesis Provider Configuration */}
+        <SynthesisConfig />
+
         {/* Danger Zone */}
         <Card className="border-destructive/50 bg-destructive/5">
           <CardHeader>
@@ -281,6 +326,64 @@ function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Reset Indexation */}
+            {!showConfirmIndex ? (
+              <div className="flex items-center justify-between p-4 border border-orange-500/20 rounded-lg bg-orange-500/10">
+                <div className="flex items-start gap-3">
+                  <FileCodeIcon className="h-5 w-5 text-orange-500 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-medium">Reset Indexation</p>
+                    <p className="text-sm text-muted-foreground">
+                      Delete all indexed files and chunks. Memories and patterns are preserved.
+                      Use this after deleting projects or fixing indexation issues.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setShowConfirmIndex(true)}
+                  variant="outline"
+                  className="border-orange-500/50 hover:bg-orange-500/20"
+                  disabled={!isConnected || isResettingIndex}
+                >
+                  Reset Index
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 p-4 border border-orange-500/20 rounded-lg bg-orange-500/10">
+                <div className="space-y-2">
+                  <p className="font-medium text-orange-600 dark:text-orange-500">Reset indexation?</p>
+                  <p className="text-sm text-muted-foreground">
+                    This will delete:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-4">
+                    <li>{settings?.database?.files?.toLocaleString() || 0} indexed files</li>
+                    <li>{settings?.database?.chunks?.toLocaleString() || 0} code chunks</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground">
+                    Memories and patterns will be preserved. You can re-index your projects after this.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleResetIndex}
+                    variant="default"
+                    className="bg-orange-600 hover:bg-orange-700"
+                    disabled={isResettingIndex}
+                  >
+                    {isResettingIndex ? 'Resetting...' : 'Yes, Reset Index'}
+                  </Button>
+                  <Button
+                    onClick={() => setShowConfirmIndex(false)}
+                    variant="outline"
+                    disabled={isResettingIndex}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Reset Entire Database */}
             {!showConfirm ? (
               <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/10">
                 <div className="space-y-1">
@@ -305,11 +408,11 @@ function SettingsPage() {
                     This will permanently delete ALL data from your Nexus database including:
                   </p>
                   <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-4">
-                    <li>{settings?.database.files.toLocaleString() || 0} indexed files</li>
-                    <li>{settings?.database.chunks.toLocaleString() || 0} code chunks</li>
-                    <li>{settings?.database.memories.toLocaleString() || 0} memories</li>
-                    <li>{settings?.database.patterns.toLocaleString() || 0} patterns</li>
-                    <li>{settings?.database.projects.toLocaleString() || 0} projects</li>
+                    <li>{settings?.database?.files?.toLocaleString() || 0} indexed files</li>
+                    <li>{settings?.database?.chunks?.toLocaleString() || 0} code chunks</li>
+                    <li>{settings?.database?.memories?.toLocaleString() || 0} memories</li>
+                    <li>{settings?.database?.patterns?.toLocaleString() || 0} patterns</li>
+                    <li>{settings?.database?.projects?.toLocaleString() || 0} projects</li>
                   </ul>
                   <p className="text-sm text-destructive font-medium">
                     This action cannot be undone!
@@ -331,26 +434,6 @@ function SettingsPage() {
                     Cancel
                   </Button>
                 </div>
-              </div>
-            )}
-
-            {/* Message */}
-            {message && (
-              <div className={`flex items-center gap-3 p-4 rounded-lg ${
-                message.type === 'success'
-                  ? 'bg-green-500/10 border border-green-500/20'
-                  : 'bg-red-500/10 border border-red-500/20'
-              }`}>
-                {message.type === 'success' ? (
-                  <CheckCircle2Icon className="h-5 w-5 text-green-500" />
-                ) : (
-                  <AlertCircleIcon className="h-5 w-5 text-red-500" />
-                )}
-                <p className={`text-sm ${
-                  message.type === 'success' ? 'text-green-500' : 'text-red-500'
-                }`}>
-                  {message.text}
-                </p>
               </div>
             )}
           </CardContent>

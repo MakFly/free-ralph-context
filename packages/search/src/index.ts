@@ -7,6 +7,7 @@
  * - Lightweight and fast
  *
  * Sprint 8: Added ChromaDB hybrid support for large datasets
+ * Sprint 9: Added LLM synthesis for compact observations
  */
 
 // Re-export FTS5 functions
@@ -275,3 +276,11 @@ export function formatCompact(hit: SearchHit): string {
   const score = Math.round(hit.score * 100);
   return `./${hit.path}:${hit.startLine}-${hit.endLine} [${score}%]`;
 }
+
+// Re-export synthesis functions (Sprint 9)
+export {
+  SynthesisService,
+  synthesizeSearchResults,
+} from './synthesis.js';
+
+export type { SynthesizedObservation } from './synthesis.js';

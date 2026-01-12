@@ -8,6 +8,32 @@
 import { embed, embedBatch, getEmbeddingProvider } from './provider.js';
 
 // ============================================
+// HELPERS
+// ============================================
+
+/**
+ * Escape special FTS5 query characters
+ * FTS5 special characters: " * - + ( ) : ^
+ */
+function escapeQueryForFts5(query: string): string {
+  // Already quoted - just escape internal quotes
+  if (query.startsWith('"') && query.endsWith('"')) {
+    return query;
+  }
+
+  // Check for FTS5 special characters that need escaping
+  const hasSpecialChars = /[\s\-\+\*\(\)\:\^]/.test(query);
+
+  if (hasSpecialChars) {
+    // Wrap in quotes to treat as literal phrase/term
+    return `"${query.replace(/"/g, '""')}"`;
+  }
+
+  // Simple word without special chars - use as is
+  return query;
+}
+
+// ============================================
 // TYPES
 // ============================================
 
@@ -129,7 +155,10 @@ interface EmbeddingRow {
   vector: Buffer;
 }
 
-export function getAllEmbeddings(db: Database): EmbeddingRow[] {
+export function getAllEmbeddings(db: Database, projectId?: number): EmbeddingRow[] {
+  const projectFilter = projectId ? 'WHERE f.project_id = ?' : '';
+  const params = projectId ? [projectId] : [];
+
   return db.query<EmbeddingRow>(`
     SELECT
       e.chunk_id,
@@ -143,7 +172,8 @@ export function getAllEmbeddings(db: Database): EmbeddingRow[] {
     FROM embeddings e
     JOIN chunks c ON e.chunk_id = c.id
     JOIN files f ON c.file_id = f.id
-  `);
+    ${projectFilter}
+  `, params);
 }
 
 // ============================================
@@ -156,7 +186,8 @@ export function getAllEmbeddings(db: Database): EmbeddingRow[] {
 export async function semanticSearch(
   db: Database,
   query: string,
-  limit = 10
+  limit = 10,
+  projectId?: number
 ): Promise<SemanticSearchResult> {
   const startTime = Date.now();
 
@@ -166,7 +197,7 @@ export async function semanticSearch(
   const embeddingTimeMs = Date.now() - embedStart;
 
   // Get all embeddings
-  const embeddings = getAllEmbeddings(db);
+  const embeddings = getAllEmbeddings(db, projectId);
 
   // Calculate similarities
   const scored = embeddings.map(row => ({
@@ -199,9 +230,9 @@ export async function semanticSearch(
 export async function hybridSearch(
   db: Database,
   query: string,
-  options: { limit?: number; keywordWeight?: number; semanticWeight?: number } = {}
+  options: { limit?: number; keywordWeight?: number; semanticWeight?: number; projectId?: number } = {}
 ): Promise<SemanticSearchResult> {
-  const { limit = 10, keywordWeight = 0.3, semanticWeight = 0.7 } = options;
+  const { limit = 10, keywordWeight = 0.3, semanticWeight = 0.7, projectId } = options;
   const startTime = Date.now();
 
   // Embed query
@@ -209,14 +240,23 @@ export async function hybridSearch(
   const queryVector = await embed(query);
   const embeddingTimeMs = Date.now() - embedStart;
 
+  // Build WHERE clause for project filtering
+  const projectFilter = projectId ? 'AND f.project_id = ?' : '';
+
+  // Escape query for FTS5 (handle special chars like - + * etc.)
+  const escapedQuery = escapeQueryForFts5(query);
+  const keywordParams = projectId ? [escapedQuery, projectId] : [escapedQuery];
+
   // Get FTS5 keyword scores (normalized)
   const keywordResults = db.query<{ chunk_id: number; score: number }>(`
-    SELECT rowid as chunk_id, -bm25(chunks_fts) as score
+    SELECT chunks_fts.rowid as chunk_id, -bm25(chunks_fts) as score
     FROM chunks_fts
-    WHERE chunks_fts MATCH ?
+    JOIN chunks c ON chunks_fts.rowid = c.id
+    JOIN files f ON c.file_id = f.id
+    WHERE chunks_fts MATCH ? ${projectFilter}
     ORDER BY score DESC
     LIMIT 100
-  `, [query]);
+  `, keywordParams);
 
   const keywordScores = new Map<number, number>();
   const maxKeywordScore = keywordResults[0]?.score || 1;
@@ -225,7 +265,7 @@ export async function hybridSearch(
   }
 
   // Get embeddings and calculate hybrid scores
-  const embeddings = getAllEmbeddings(db);
+  const embeddings = getAllEmbeddings(db, projectId);
 
   const scored = embeddings.map(row => {
     const semanticScore = cosineSimilarity(queryVector, blobToVector(row.vector));

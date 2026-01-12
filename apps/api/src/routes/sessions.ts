@@ -281,12 +281,6 @@ function calculateTotalTokens(modelUsage: Record<string, ModelUsage> | undefined
   );
 }
 
-// Helper: Calculate total cost from usage
-function calculateTotalCost(modelUsage: Record<string, ModelUsage> | undefined): number {
-  if (!modelUsage) return 0;
-  return Object.values(modelUsage).reduce((sum, usage) => sum + usage.costUSD, 0);
-}
-
 // CCS Config type
 interface CcsConfig {
   current: string;
@@ -639,8 +633,15 @@ async function detectSessions(): Promise<SessionsResponse> {
   };
 }
 
-// Create routes
-export function createSessionsRoutes() {
+// Database type
+type Database = {
+  query: <T>(sql: string, ...params: unknown[]) => T[];
+  queryOne: <T>(sql: string, ...params: unknown[]) => T | null;
+  run: (sql: string, ...params: unknown[]) => { changes: number; lastInsertRowid: number | bigint };
+};
+
+// Create routes - accepts optional getDb for database operations
+export function createSessionsRoutes(getDb?: () => Promise<Database>) {
   const app = new Hono();
 
   // GET /sessions - List all detected sessions
@@ -660,6 +661,142 @@ export function createSessionsRoutes() {
       return c.json(result.summary);
     } catch (e) {
       return c.json({ error: 'Failed to get summary', message: String(e) }, 500);
+    }
+  });
+
+  // POST /sessions/init - Initialize session in database (called by hooks)
+  app.post('/init', async (c) => {
+    if (!getDb) {
+      return c.json({ error: 'Database not configured' }, 503);
+    }
+
+    try {
+      const db = await getDb();
+      const { session_id, project, cwd, first_prompt, started_at } = await c.req.json();
+
+      if (!session_id) {
+        return c.json({ error: 'Missing session_id' }, 400);
+      }
+
+      // Check if session already exists
+      const existing = db.queryOne<{ id: number }>(
+        'SELECT id FROM sessions WHERE session_id = ?',
+        session_id
+      );
+
+      if (existing) {
+        return c.json({ ok: true, id: existing.id, existed: true });
+      }
+
+      // Store additional data in metadata JSON
+      const metadata = JSON.stringify({
+        project: project || 'unknown',
+        cwd: cwd || process.cwd(),
+        first_prompt: first_prompt || null,
+      });
+
+      // Insert new session using existing table schema
+      const result = db.run(
+        `INSERT INTO sessions (session_id, started_at, metadata)
+         VALUES (?, ?, ?)`,
+        session_id,
+        started_at || Date.now(),
+        metadata
+      );
+
+      return c.json({ ok: true, id: result.lastInsertRowid, created: true }, 201);
+    } catch (e) {
+      return c.json({ error: 'Failed to init session', message: String(e) }, 500);
+    }
+  });
+
+  // POST /sessions/summarize - Generate and save session summary (called by hooks)
+  app.post('/summarize', async (c) => {
+    if (!getDb) {
+      return c.json({ error: 'Database not configured' }, 503);
+    }
+
+    try {
+      const db = await getDb();
+      const { session_id, project, stop_reason, last_message, ended_at } = await c.req.json();
+
+      if (!session_id) {
+        return c.json({ error: 'Missing session_id' }, 400);
+      }
+
+      // Get all observations from this session
+      const observations = db.query<{ type: string; title: string; summary?: string }>(
+        `SELECT type, title, summary FROM observations
+         WHERE session_id = ?
+         ORDER BY created_at ASC`,
+        session_id
+      );
+
+      // Generate algorithmic summary (no LLM required)
+      const typeCounts: Record<string, number> = {};
+      const titles: string[] = [];
+
+      for (const obs of observations) {
+        typeCounts[obs.type] = (typeCounts[obs.type] || 0) + 1;
+        if (titles.length < 5) {
+          titles.push(obs.summary || obs.title);
+        }
+      }
+
+      const typesSummary = Object.entries(typeCounts)
+        .map(([type, count]) => `${count} ${type}`)
+        .join(', ');
+
+      const summary = {
+        request: `Session with ${observations.length} observations`,
+        investigated: typesSummary || 'Nothing captured',
+        learned: titles.slice(0, 3).join('; ') || 'No learnings captured',
+        completed: last_message?.substring(0, 200) || 'Session ended',
+      };
+
+      // Update session record with ended_at and metadata
+      const existingSession = db.queryOne<{ metadata: string }>(
+        'SELECT metadata FROM sessions WHERE session_id = ?',
+        session_id
+      );
+
+      let metadata: Record<string, unknown> = {};
+      if (existingSession?.metadata) {
+        try {
+          metadata = JSON.parse(existingSession.metadata);
+        } catch { /* ignore */ }
+      }
+      metadata.stop_reason = stop_reason || 'unknown';
+      metadata.summary = summary;
+
+      db.run(
+        `UPDATE sessions SET ended_at = ?, metadata = ? WHERE session_id = ?`,
+        ended_at || Date.now(),
+        JSON.stringify(metadata),
+        session_id
+      );
+
+      // Insert summary into session_summaries
+      const result = db.run(
+        `INSERT INTO session_summaries (session_id, project, request, investigated, learned, completed, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        session_id,
+        project || 'unknown',
+        summary.request,
+        summary.investigated,
+        summary.learned,
+        summary.completed,
+        Date.now()
+      );
+
+      return c.json({
+        ok: true,
+        id: result.lastInsertRowid,
+        summary,
+        observations_count: observations.length,
+      });
+    } catch (e) {
+      return c.json({ error: 'Failed to summarize session', message: String(e) }, 500);
     }
   });
 

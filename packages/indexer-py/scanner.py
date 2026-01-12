@@ -4,6 +4,7 @@ Utilise des générateurs pour ne jamais garder plus d'1 fichier en mémoire
 """
 
 import hashlib
+import sys
 import time
 from pathlib import Path
 from typing import Generator, Any
@@ -16,6 +17,40 @@ from database import (
     delete_chunks_for_file,
     insert_chunk,
 )
+
+
+# ANSI codes pour la progress bar
+ANSI_CLEAR_LINE = '\033[K'
+ANSI_MOVE_CURSOR = '\033[G'
+
+
+def show_progress(current: int, total: int, width: int = 40, file_path: str | None = None) -> None:
+    """Affiche une progress bar sur stderr."""
+    if total <= 0:
+        percent = 100
+    else:
+        percent = min(100, int((current / total) * 100))
+
+    filled = int(width * percent / 100)
+    bar = '█' * filled + '░' * (width - filled)
+
+    # Afficher sur stderr pour ne pas polluer stdout
+    sys.stderr.write(f'\r{ANSI_MOVE_CURSOR} [{bar}] {percent:3d}% ')
+
+    if file_path:
+        # Tronquer le nom du fichier si trop long
+        display_path = file_path
+        if len(display_path) > 50:
+            display_path = '...' + display_path[-47:]
+        sys.stderr.write(f'| {display_path}')
+
+    sys.stderr.flush()
+
+
+def clear_progress() -> None:
+    """Efface la progress bar."""
+    sys.stderr.write(f'\r{ANSI_CLEAR_LINE}{ANSI_MOVE_CURSOR}')
+    sys.stderr.flush()
 
 
 # Patterns à ignorer (comme .gitignore)
@@ -275,6 +310,7 @@ def scan_workspace_sync(
     max_file_size: int = 1024 * 1024,  # 1MB
     max_chunk_lines: int = 80,
     project_id: int | None = None,
+    progress_bar: bool = True,
 ) -> dict[str, Any]:
     """
     Scan et indexe un workspace en streaming (SYNC).
@@ -292,6 +328,18 @@ def scan_workspace_sync(
         "errors": [],
     }
 
+    # Compter les fichiers d'abord pour la progress bar
+    total_files = 0
+    if progress_bar:
+        for _ in walk_files(root_path):
+            total_files += 1
+            if total_files >= max_files:
+                break
+
+    # Afficher la progress bar initiale
+    if progress_bar:
+        show_progress(0, max(1, total_files), file_path="Initialisation...")
+
     # Streaming: traite 1 fichier à la fois
     for file_path in walk_files(root_path):
         if result["files_scanned"] >= max_files:
@@ -300,6 +348,10 @@ def scan_workspace_sync(
 
         result["files_scanned"] += 1
         rel_path = str(file_path.relative_to(root_path))
+
+        # Mettre à jour la progress bar
+        if progress_bar and result["files_scanned"] % 10 == 0:
+            show_progress(result["files_scanned"], max(1, total_files), file_path=rel_path)
 
         try:
             # Check file size AVANT de lire
@@ -371,6 +423,10 @@ def scan_workspace_sync(
             })
 
         # Le contenu est automatiquement libéré ici (sort du scope)
+
+    # Effacer la progress bar
+    if progress_bar:
+        clear_progress()
 
     result["duration_ms"] = int((time.time() - start_time) * 1000)
     return result

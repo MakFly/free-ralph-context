@@ -85,7 +85,7 @@ export class Database {
 
     // For now, hardcode the migration files
     // In production, scan the migrations directory
-    const migrations = ['001_unified_schema.sql', '002_memory_system.sql', '003_projects.sql', '004_automation.sql', '005_settings.sql', '006_compression.sql'];
+    const migrations = ['001_unified_schema.sql', '002_memory_system.sql', '003_projects.sql', '004_automation.sql', '005_settings.sql', '006_compression.sql', '007_session_history.sql', '008_synthesis_settings.sql', '009_system_logs.sql', '010_hooks_to_system_logs.sql'];
 
     for (const migration of migrations) {
       if (applied.has(migration)) {

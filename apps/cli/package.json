@@ -1,6 +1,6 @@
 {
   "name": "@nexus/cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Nexus CLI - Command-line interface for Nexus",
   "type": "module",
   "main": "./dist/index.js",

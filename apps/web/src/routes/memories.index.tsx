@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   useNexusStore,
   type MemoryCompact,
@@ -13,7 +13,6 @@ import {
   CodeIcon,
   FileTextIcon,
   PlusIcon,
-  SearchIcon,
   Trash2Icon,
   EditIcon,
   LightbulbIcon,
@@ -31,7 +30,6 @@ import {
 } from 'lucide-react'
 import { AppLayout } from '@/components/app-layout'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { MemoriesFilters } from '@/components/memories-filters'
 import {
   Dialog,
   DialogContent,
@@ -94,13 +94,25 @@ function MemoriesList() {
   // State
   const [memories, setMemories] = useState<MemoryCompact[]>([])
   const [expandedMemories, setExpandedMemories] = useState<Map<number, MemoryFull>>(new Map())
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [isSearching, setIsSearching] = useState(false)
   const [total, setTotal] = useState(0)
+  const hasLoadedOnce = useRef(false)
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterScope, setFilterScope] = useState<string>('all')
+
+  // Stable handlers for filters (prevents re-render of MemoriesFilters)
+  const handleSearchChange = useCallback((value: string) => setSearchQuery(value), [])
+  const handleFilterTypeChange = useCallback((value: string) => setFilterType(value), [])
+  const handleFilterScopeChange = useCallback((value: string) => setFilterScope(value), [])
+  const handleClearFilters = useCallback(() => {
+    setFilterType('all')
+    setFilterScope('all')
+    setSearchQuery('')
+  }, [])
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -116,7 +128,12 @@ function MemoriesList() {
 
   // Load memories
   const loadMemories = useCallback(async () => {
-    setLoading(true)
+    // Only show full skeleton on initial load, not during search/filter
+    if (!hasLoadedOnce.current) {
+      setInitialLoading(true)
+    } else {
+      setIsSearching(true)
+    }
     try {
       const result = await recallMemories({
         q: searchQuery || undefined,
@@ -126,10 +143,12 @@ function MemoriesList() {
       })
       setMemories(result.memories)
       setTotal(result.total)
+      hasLoadedOnce.current = true
     } catch (e) {
       console.error('Failed to load memories:', e)
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setIsSearching(false)
     }
   }, [recallMemories, searchQuery, filterType, filterScope])
 
@@ -146,7 +165,7 @@ function MemoriesList() {
 
       return () => clearTimeout(timer)
     } else {
-      setLoading(false)
+      setInitialLoading(false)
     }
   }, [isConnected, loadMemories, searchQuery, filterType, filterScope])
 
@@ -273,8 +292,8 @@ function MemoriesList() {
     }
   }
 
-  // Loading state - show skeleton
-  if (loading) {
+  // Initial loading state - show skeleton (only on first load, not during search)
+  if (initialLoading) {
     return <AppLayout><MemoriesSkeleton /></AppLayout>
   }
 
@@ -319,63 +338,16 @@ function MemoriesList() {
           </Button>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search memories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {MEMORY_TYPES.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterScope} onValueChange={setFilterScope}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filter by scope" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Scopes</SelectItem>
-                  {MEMORY_SCOPES.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {(filterType !== 'all' || filterScope !== 'all' || searchQuery) && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setFilterType('all')
-                    setFilterScope('all')
-                    setSearchQuery('')
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Filters - memoized component to prevent re-render on search */}
+        <MemoriesFilters
+          searchQuery={searchQuery}
+          filterType={filterType}
+          filterScope={filterScope}
+          onSearchChange={handleSearchChange}
+          onFilterTypeChange={handleFilterTypeChange}
+          onFilterScopeChange={handleFilterScopeChange}
+          onClearFilters={handleClearFilters}
+        />
 
         {/* Empty State */}
         {memories.length === 0 && (

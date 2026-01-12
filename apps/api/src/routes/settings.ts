@@ -58,6 +58,129 @@ export function createSettingsRoutes(getDb: () => Promise<Database>) {
     return c.json({ settings: masked });
   });
 
+  // ==================== SPECIFIC ROUTES (must be before /:key) ====================
+
+  // ==================== GET COMPRESSION SETTINGS ====================
+  app.get('/compression/config', async (c) => {
+    const db = await getDb();
+
+    const settings = db.query<{ key: string; value: string }>(`
+      SELECT key, value FROM settings WHERE category = 'compression'
+    `);
+
+    const config = {
+      mode: 'auto',
+      provider: 'anthropic' as CompressionProvider,
+      maxTokens: 30,
+      llmModel: 'claude-3-5-haiku-20241022'
+    };
+
+    settings.forEach(s => {
+      if (s.key === 'compression_mode') config.mode = s.value as any;
+      if (s.key === 'compression_provider') config.provider = s.value as any;
+      if (s.key === 'compression_max_tokens') config.maxTokens = parseInt(s.value);
+      if (s.key === 'compression_llm_model') config.llmModel = s.value;
+    });
+
+    return c.json(config);
+  });
+
+  // ==================== GET SYNTHESIS SETTINGS ====================
+  app.get('/synthesis', async (c) => {
+    const db = await getDb();
+
+    const settings = db.query<{ key: string; value: string; encrypted: number }>(`
+      SELECT key, value, encrypted FROM settings WHERE category = 'synthesis'
+    `);
+
+    const config: any = {
+      mode: 'auto',
+      provider: 'anthropic',
+      confidence: 0.7,
+      model: undefined,
+      configured: false,
+      apiKeyMasked: undefined,
+    };
+
+    for (const setting of settings) {
+      if (setting.key === 'synthesis_mode') {
+        config.mode = setting.value;
+      } else if (setting.key === 'synthesis_provider') {
+        config.provider = setting.value;
+      } else if (setting.key === 'synthesis_confidence') {
+        config.confidence = parseFloat(setting.value);
+      } else if (setting.key === 'synthesis_model') {
+        config.model = setting.value;
+      } else if (setting.key === 'synthesis_api_key') {
+        config.apiKeyMasked = maskEncryptedApiKey(setting.value);
+        config.configured = true;
+      }
+    }
+
+    return c.json(config);
+  });
+
+  // ==================== POST SYNTHESIS SETTINGS ====================
+  app.post('/synthesis', async (c) => {
+    const db = await getDb();
+    const { mode, provider, apiKey, model, confidence } = await c.req.json();
+
+    try {
+      // Save mode
+      if (mode !== undefined) {
+        db.run(`
+          INSERT INTO settings (key, value, encrypted, category, updated_at)
+          VALUES ('synthesis_mode', ?, 0, 'synthesis', datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        `, mode);
+      }
+
+      // Save provider
+      if (provider !== undefined) {
+        db.run(`
+          INSERT INTO settings (key, value, encrypted, category, updated_at)
+          VALUES ('synthesis_provider', ?, 0, 'synthesis', datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        `, provider);
+      }
+
+      // Save confidence
+      if (confidence !== undefined) {
+        db.run(`
+          INSERT INTO settings (key, value, encrypted, category, updated_at)
+          VALUES ('synthesis_confidence', ?, 0, 'synthesis', datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        `, confidence.toString());
+      }
+
+      // Save model
+      if (model !== undefined) {
+        db.run(`
+          INSERT INTO settings (key, value, encrypted, category, updated_at)
+          VALUES ('synthesis_model', ?, 0, 'synthesis', datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        `, model);
+      }
+
+      // Save API key (encrypted)
+      if (apiKey !== undefined && apiKey !== '') {
+        const encrypted = encryptApiKey(apiKey);
+        db.run(`
+          INSERT INTO settings (key, value, encrypted, category, updated_at)
+          VALUES ('synthesis_api_key', ?, 1, 'synthesis', datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        `, encrypted);
+      }
+
+      return c.json({ success: true });
+    } catch (e) {
+      console.error('[Settings] Save synthesis error:', e);
+      return c.json({ error: 'Failed to save synthesis settings' }, 500);
+    }
+  });
+
+  // ==================== GENERAL ROUTES ====================
+
   // ==================== GET SETTING BY KEY ====================
   app.get('/:key', async (c) => {
     const db = await getDb();
@@ -205,31 +328,6 @@ export function createSettingsRoutes(getDb: () => Promise<Database>) {
     }
   });
 
-  // ==================== GET COMPRESSION SETTINGS ====================
-  app.get('/compression/config', async (c) => {
-    const db = await getDb();
-
-    const settings = db.query<{ key: string; value: string }>(`
-      SELECT key, value FROM settings WHERE category = 'compression'
-    `);
-
-    const config = {
-      mode: 'auto',
-      provider: 'anthropic' as CompressionProvider,
-      maxTokens: 30,
-      llmModel: 'claude-3-5-haiku-20241022'
-    };
-
-    settings.forEach(s => {
-      if (s.key === 'compression_mode') config.mode = s.value as any;
-      if (s.key === 'compression_provider') config.provider = s.value as any;
-      if (s.key === 'compression_max_tokens') config.maxTokens = parseInt(s.value);
-      if (s.key === 'compression_llm_model') config.llmModel = s.value;
-    });
-
-    return c.json(config);
-  });
-
   // ==================== DATABASE STATS ====================
   app.get('/stats', async (c) => {
     const db = await getDb();
@@ -288,6 +386,45 @@ export function createSettingsRoutes(getDb: () => Promise<Database>) {
     } catch (error) {
       console.error('[Settings] Reset error:', error);
       return c.json({ error: 'Failed to reset database' }, 500);
+    }
+  });
+
+  // ==================== RESET INDEXATION ====================
+  app.post('/reset-index', async (c) => {
+    const db = await getDb();
+
+    const { confirm } = await c.req.json();
+
+    if (confirm !== 'RESET_INDEX_CONFIRM') {
+      return c.json({ error: 'Confirmation required. Use "RESET_INDEX_CONFIRM"' }, 400);
+    }
+
+    try {
+      // Get counts before deletion for feedback
+      const stats = db.queryOne<{ files: number; chunks: number }>(`
+        SELECT
+          (SELECT COUNT(*) FROM files) as files,
+          (SELECT COUNT(*) FROM chunks) as chunks
+      `);
+
+      // Delete only indexation data (files + chunks)
+      db.exec('DELETE FROM chunks');
+      db.exec('DELETE FROM files');
+
+      // Reset sequences for files and chunks only
+      db.exec("DELETE FROM sqlite_sequence WHERE name IN ('files', 'chunks')");
+
+      return c.json({
+        success: true,
+        message: `Indexation reset. Deleted ${stats?.files || 0} files and ${stats?.chunks || 0} chunks.`,
+        deleted: {
+          files: stats?.files || 0,
+          chunks: stats?.chunks || 0
+        }
+      });
+    } catch (error) {
+      console.error('[Settings] Reset index error:', error);
+      return c.json({ error: 'Failed to reset indexation' }, 500);
     }
   });
 

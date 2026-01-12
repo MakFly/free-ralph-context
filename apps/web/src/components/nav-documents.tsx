@@ -19,6 +19,7 @@ export function NavDocuments({
     name: string
     url: string
     icon: Icon
+    badge?: number
   }>
   title?: string
 }) {
@@ -32,6 +33,11 @@ export function NavDocuments({
               <Link to={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

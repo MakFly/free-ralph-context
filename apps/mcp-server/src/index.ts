@@ -81,17 +81,19 @@ const TOOLS = [
   },
   {
     name: 'nexus_memory',
-    description: 'Memory system. Actions: recall (compact index), get (full by IDs), upsert (create/update).',
+    description: 'Memory system. Actions: recall (compact index), get (full by IDs), upsert (create/update), timeline (context around ID).',
     inputSchema: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['recall', 'get', 'upsert'], description: 'Action to perform' },
+        action: { type: 'string', enum: ['recall', 'get', 'upsert', 'timeline'], description: 'Action to perform' },
         query: { type: 'string', description: 'Search query (for recall)' },
         type: { type: 'string', enum: ['decision', 'preference', 'fact', 'note', 'discovery', 'bugfix', 'feature', 'refactor', 'change'] },
         scope: { type: 'string', enum: ['repo', 'branch', 'ticket', 'feature', 'global'] },
         limit: { type: 'number', description: 'Max results (default: 10)' },
         tier: { type: 'number', enum: [1, 2, 3], description: 'Detail level: 1=IDs, 2=summary, 3=full (default: 2)' },
         ids: { type: 'array', items: { type: 'number' }, description: 'Memory IDs (for get)' },
+        anchor: { type: 'number', description: 'Memory ID for timeline center point' },
+        window: { type: 'number', description: 'Number of items before/after anchor (default: 5)' },
         title: { type: 'string', description: 'Title (for upsert)' },
         narrative: { type: 'string', description: 'Content (for upsert)' },
         tags: { type: 'array', items: { type: 'string' }, description: 'Tags (for upsert)' },
@@ -237,6 +239,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
 
         return { content: [{ type: 'text', text: `Created:${result.id}` }] };
+      }
+
+      if (action === 'timeline') {
+        const { anchor, window = 5 } = args as any;
+        if (!anchor) throw new Error('anchor (memory ID) required for timeline');
+
+        const result = await api<{ target_id: number; session_id: string; before: any[]; after: any[] }>(
+          `/memory/${anchor}/timeline?window=${window}`
+        );
+
+        // Format timeline: before → [anchor] → after
+        const formatObs = (o: any) => `${o.id}|${TYPE_SHORT[o.type] || o.type}|${o.summary || o.title}`;
+
+        const lines: string[] = [];
+
+        // Before (oldest first)
+        for (const o of result.before) {
+          lines.push(`← ${formatObs(o)}`);
+        }
+
+        // Anchor point
+        lines.push(`→ [${result.target_id}] (anchor)`);
+
+        // After (newest first)
+        for (const o of result.after) {
+          lines.push(`→ ${formatObs(o)}`);
+        }
+
+        const compact = lines.join('\n');
+        return { content: [{ type: 'text', text: compact || 'No timeline data' }] };
       }
 
       throw new Error(`Unknown action: ${action}`);

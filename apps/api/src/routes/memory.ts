@@ -92,8 +92,8 @@ export function createMemoryRoutes(getDb: () => Promise<Database>) {
           o.confidence,
           o.created_at,
           bm25(observations_fts) as score
-        FROM observations_fts fts
-        JOIN observations o ON o.id = fts.rowid
+        FROM observations_fts
+        JOIN observations o ON o.id = observations_fts.rowid
         WHERE observations_fts MATCH ?
         ${type ? 'AND o.type = ?' : ''}
         ${scope ? 'AND o.scope = ?' : ''}
@@ -495,6 +495,14 @@ export function createMemoryRoutes(getDb: () => Promise<Database>) {
     );
 
     return c.json({ links });
+  });
+
+  // ==================== AUTO-CREATE DISABLED ====================
+  app.post('/auto-create', async (c) => {
+    return c.json({
+      error: 'Auto-create disabled',
+      message: 'Memory auto-creation has been removed'
+    }, 410);
   });
 
   return app;

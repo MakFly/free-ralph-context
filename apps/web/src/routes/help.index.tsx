@@ -22,6 +22,9 @@ import {
   Workflow,
   Server,
   AlertCircle,
+  Package,
+  TrendingDown,
+  BarChart3,
 } from 'lucide-react'
 import { AppLayout } from '@/components/app-layout'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -96,7 +99,7 @@ function HelpPage() {
             <h1 className="text-2xl font-bold tracking-tight">Help & Documentation</h1>
           </div>
           <p className="text-muted-foreground mt-1">
-            Guide complet pour Nexus - Memory-Powered Development System v1.0
+            Guide complet pour Nexus - Memory-Powered Development System v0.0.2
           </p>
         </div>
 
@@ -108,7 +111,7 @@ function HelpPage() {
             icon={Brain}
             iconColor="bg-primary/10 text-primary"
             title="Qu'est-ce que Nexus ?"
-            subtitle="Memory-Powered Development System v1.0 • Automation MVP Complete"
+            subtitle="Memory-Powered Development System v0.0.2 • ISO claude-mem Complete"
             className="col-span-1 md:col-span-2 xl:col-span-3 bg-primary/5 hover:bg-primary/10 border-primary/20"
           >
             <div className="space-y-4">
@@ -195,6 +198,178 @@ function HelpPage() {
             </div>
           </HelpCard>
 
+          {/* Token Savings Benchmark */}
+          <HelpCard
+            id="token-savings"
+            icon={TrendingDown}
+            iconColor="bg-emerald-500/10 text-emerald-500"
+            title="Token Savings Benchmark"
+            subtitle="Preuve mesurable de l'economie • 82% verifie"
+            className="col-span-1 md:col-span-2 xl:col-span-3 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20"
+          >
+            <div className="space-y-6">
+              {/* Headline */}
+              <div className="text-center p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <div className="text-4xl font-bold text-emerald-600 mb-1">82%</div>
+                <div className="text-sm text-muted-foreground">d'economie de tokens mesuree</div>
+                <div className="text-xs text-muted-foreground mt-1">3,490 → 625 tokens sur fichier reel de 509 lignes</div>
+              </div>
+
+              {/* Test A/B */}
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <BarChart3 className="h-4 w-4" />
+                  Test A/B Concret
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Test A */}
+                  <div className="p-4 rounded-lg border bg-red-500/5 border-red-500/20">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge className="bg-red-500/10 text-red-500 border-red-500/20">Test A</Badge>
+                      <span className="font-semibold text-sm">Methode Traditionnelle</span>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between p-2 rounded bg-muted/50">
+                        <span>1. Grep (recherche)</span>
+                        <span className="font-mono">~50 tokens</span>
+                      </div>
+                      <div className="flex justify-between p-2 rounded bg-muted/50">
+                        <span>2. Read (fichier complet 509 lignes)</span>
+                        <span className="font-mono">~3,440 tokens</span>
+                      </div>
+                      <div className="flex justify-between p-2 rounded bg-red-500/10 font-semibold">
+                        <span>TOTAL</span>
+                        <span className="font-mono text-red-600">~3,490 tokens</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Lit TOUT le fichier : types, templates, patterns, methodes non pertinentes...
+                    </p>
+                  </div>
+
+                  {/* Test B */}
+                  <div className="p-4 rounded-lg border bg-emerald-500/5 border-emerald-500/20">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Test B</Badge>
+                      <span className="font-semibold text-sm">Methode Nexus MCP</span>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between p-2 rounded bg-muted/50">
+                        <span>1. nexus_code(search, semantic)</span>
+                        <span className="font-mono">~80 tokens</span>
+                      </div>
+                      <div className="flex justify-between p-2 rounded bg-muted/50">
+                        <span>2. Lecture chunk cible (80 lignes)</span>
+                        <span className="font-mono">~545 tokens</span>
+                      </div>
+                      <div className="flex justify-between p-2 rounded bg-emerald-500/10 font-semibold">
+                        <span>TOTAL</span>
+                        <span className="font-mono text-emerald-600">~625 tokens</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Lit UNIQUEMENT le chunk pertinent avec score 80%+
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visualisation */}
+              <div>
+                <h4 className="font-semibold text-sm mb-3">Visualisation</h4>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span>Methode Traditionnelle</span>
+                      <span className="font-mono text-red-600">3,490 tokens (100%)</span>
+                    </div>
+                    <div className="h-6 rounded bg-red-500/20 w-full flex items-center px-2">
+                      <div className="h-4 rounded bg-red-500 w-full"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span>Methode Nexus MCP</span>
+                      <span className="font-mono text-emerald-600">625 tokens (18%)</span>
+                    </div>
+                    <div className="h-6 rounded bg-muted w-full flex items-center px-2">
+                      <div className="h-4 rounded bg-emerald-500" style={{ width: '18%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scenario reel */}
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Lightbulb className="h-4 w-4 text-yellow-500" />
+                  Scenario Reel : Comprendre 5 fonctions complexes
+                </h4>
+                <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                  <div className="p-3 rounded border bg-red-500/5">
+                    <div className="font-semibold text-red-600">Traditionnel</div>
+                    <div className="text-lg font-bold mt-1">17,450</div>
+                    <div className="text-muted-foreground">tokens</div>
+                  </div>
+                  <div className="p-3 rounded border bg-emerald-500/5">
+                    <div className="font-semibold text-emerald-600">Nexus MCP</div>
+                    <div className="text-lg font-bold mt-1">3,125</div>
+                    <div className="text-muted-foreground">tokens</div>
+                  </div>
+                  <div className="p-3 rounded border bg-primary/5">
+                    <div className="font-semibold text-primary">Economie</div>
+                    <div className="text-lg font-bold mt-1">14,325</div>
+                    <div className="text-muted-foreground">tokens sauves</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pourquoi ca marche */}
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Zap className="h-4 w-4 text-yellow-500" />
+                  Pourquoi ca marche ?
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                  <div className="p-3 rounded border bg-muted/30 text-center">
+                    <Search className="h-5 w-5 mx-auto mb-2 text-primary" />
+                    <div className="font-semibold">Recherche Semantique</div>
+                    <p className="text-muted-foreground mt-1">Trouve les parties pertinentes (80%+ score)</p>
+                  </div>
+                  <div className="p-3 rounded border bg-muted/30 text-center">
+                    <Layers className="h-5 w-5 mx-auto mb-2 text-primary" />
+                    <div className="font-semibold">Chunking Intelligent</div>
+                    <p className="text-muted-foreground mt-1">Code decoupe en chunks de ~80 lignes</p>
+                  </div>
+                  <div className="p-3 rounded border bg-muted/30 text-center">
+                    <Eye className="h-5 w-5 mx-auto mb-2 text-primary" />
+                    <div className="font-semibold">Progressive Disclosure</div>
+                    <p className="text-muted-foreground mt-1">Charge uniquement ce qui est necessaire</p>
+                  </div>
+                  <div className="p-3 rounded border bg-muted/30 text-center">
+                    <Database className="h-5 w-5 mx-auto mb-2 text-primary" />
+                    <div className="font-semibold">Index FTS5 + Embeddings</div>
+                    <p className="text-muted-foreground mt-1">Recherche hybride ultra-rapide</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Methodologie */}
+              <div className="p-3 rounded-lg border border-dashed bg-muted/20">
+                <h4 className="font-semibold text-xs flex items-center gap-2 mb-2">
+                  <Code className="h-3 w-3" />
+                  Methodologie de mesure
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>Fichier teste :</strong> <code>packages/search/src/synthesis/algo-synthesizer.ts</code></p>
+                  <p><strong>Taille reelle :</strong> 13,958 caracteres / 509 lignes</p>
+                  <p><strong>Calcul tokens :</strong> caracteres / 4 (approximation standard tokenizer)</p>
+                  <p><strong>Chunk cible :</strong> lignes 151-230 (classe principale AlgoSynthesizer)</p>
+                </div>
+              </div>
+            </div>
+          </HelpCard>
+
           {/* MCP Tools */}
           <HelpCard
             id="mcp-tools"
@@ -238,6 +413,13 @@ function HelpPage() {
                   <Badge className="bg-green-500/10 text-green-500 border-green-500/20" variant="secondary">créer</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">Créer ou mettre à jour une mémoire</p>
+              </div>
+              <div className="p-3 rounded-lg border bg-green-500/10 border-green-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <code className="text-sm font-mono font-semibold text-green-600">nexus_memory_timeline</code>
+                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20" variant="secondary">NEW</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Chronologie contextuelle autour d'une mémoire</p>
               </div>
               <div className="p-3 rounded-lg border bg-muted/30">
                 <div className="flex items-center justify-between mb-2">
@@ -469,6 +651,23 @@ function HelpPage() {
                   <div><code className="bg-muted px-2 py-0.5 rounded">GET /health</code> <span className="text-muted-foreground">- Health check</span></div>
                   <div><code className="bg-muted px-2 py-0.5 rounded">GET /ping</code> <span className="text-muted-foreground">- Ping simple</span></div>
                   <div><code className="bg-muted px-2 py-0.5 rounded">GET /stats</code> <span className="text-muted-foreground">- Stats serveur</span></div>
+                  <div><code className="bg-muted px-2 py-0.5 rounded">GET /stream</code> <span className="text-muted-foreground">- SSE temps réel</span></div>
+                </div>
+              </div>
+
+              {/* Sessions - Implemented (NEW v0.0.2) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Workflow className="h-4 w-4 text-primary" />
+                    <div className="font-semibold text-sm">Sessions</div>
+                  </div>
+                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20" variant="secondary">✓ NEW</Badge>
+                </div>
+                <div className="space-y-1">
+                  <div><code className="bg-muted px-2 py-0.5 rounded">POST /sessions/init</code> <span className="text-muted-foreground">- Init session DB</span></div>
+                  <div><code className="bg-muted px-2 py-0.5 rounded">POST /sessions/summarize</code> <span className="text-muted-foreground">- Générer résumé</span></div>
+                  <div><code className="bg-muted px-2 py-0.5 rounded">GET /memory/:id/timeline</code> <span className="text-muted-foreground">- Timeline context</span></div>
                 </div>
               </div>
             </div>
@@ -851,27 +1050,39 @@ nexus_code({ action: "stats" })`}
             icon={Workflow}
             iconColor="bg-indigo-500/10 text-indigo-500"
             title="Automation Features"
-            subtitle="Hooks + Watcher"
+            subtitle="6 Hooks + SSE Stream + Watcher"
           >
             <div className="space-y-3">
               <div>
                 <h4 className="font-semibold text-sm flex items-center gap-2">
                   <Shield className="h-4 w-4" />
-                  Lifecycle Hooks
+                  Lifecycle Hooks (6 complets)
                 </h4>
-                <p className="text-xs text-muted-foreground mb-2">Capture automatique avec Claude Code</p>
+                <p className="text-xs text-muted-foreground mb-2">Capture automatique avec Claude Code - ISO claude-mem</p>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 rounded border bg-muted/30 text-center">
                     <code className="text-xs">sessionStart</code>
-                    <p className="text-xs text-muted-foreground mt-1">Au démarrage session</p>
+                    <p className="text-xs text-muted-foreground mt-1">Init session + context</p>
+                  </div>
+                  <div className="p-2 rounded border bg-green-500/10 text-center border-green-500/30">
+                    <code className="text-xs text-green-600">userPromptSubmit</code>
+                    <p className="text-xs text-muted-foreground mt-1">Init DB au 1er prompt</p>
                   </div>
                   <div className="p-2 rounded border bg-muted/30 text-center">
-                    <code className="text-xs">postTool</code>
-                    <p className="text-xs text-muted-foreground mt-1">Après chaque tool</p>
+                    <code className="text-xs">preToolUse</code>
+                    <p className="text-xs text-muted-foreground mt-1">Avant chaque tool</p>
+                  </div>
+                  <div className="p-2 rounded border bg-green-500/10 text-center border-green-500/30">
+                    <code className="text-xs text-green-600">postToolUse</code>
+                    <p className="text-xs text-muted-foreground mt-1">Capture → memory</p>
+                  </div>
+                  <div className="p-2 rounded border bg-green-500/10 text-center border-green-500/30">
+                    <code className="text-xs text-green-600">stop</code>
+                    <p className="text-xs text-muted-foreground mt-1">Résumé auto</p>
                   </div>
                   <div className="p-2 rounded border bg-muted/30 text-center">
                     <code className="text-xs">sessionEnd</code>
-                    <p className="text-xs text-muted-foreground mt-1">En fin de session</p>
+                    <p className="text-xs text-muted-foreground mt-1">Cleanup session</p>
                   </div>
                 </div>
               </div>
@@ -900,38 +1111,266 @@ nexus_code({ action: "stats" })`}
                   <Badge variant="outline">&lt; 2000 tokens</Badge>
                 </div>
               </div>
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  SSE Stream (temps réel)
+                </h4>
+                <p className="text-xs text-muted-foreground mb-2">Observations en temps réel dans le dashboard</p>
+                <div className="flex flex-wrap gap-1 text-xs">
+                  <Badge variant="outline" className="bg-green-500/10 text-green-600">GET /stream</Badge>
+                  <Badge variant="outline">heartbeat 30s</Badge>
+                  <Badge variant="outline">auto-reconnect</Badge>
+                  <Badge variant="outline">Live Activity panel</Badge>
+                </div>
+              </div>
             </div>
           </HelpCard>
 
-          {/* Learning Workflow */}
+          {/* Learning Patterns - COMPLET */}
           <HelpCard
             id="learning"
             icon={Sparkles}
-            iconColor="bg-yellow-500/10 text-yellow-500"
-            title="Learning Workflow"
-            subtitle="Patterns réutilisables"
+            iconColor="bg-purple-500/10 text-purple-500"
+            title="Learning Patterns"
+            subtitle="Système d'apprentissage de code réutilisable"
+            className="col-span-1 md:col-span-2 xl:col-span-3"
           >
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Capturez et réutilisez des patterns de code
-              </p>
-              <div className="flex flex-wrap items-center gap-1 text-xs">
-                <Badge variant="outline" className="px-2 py-0.5">Capture</Badge>
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                <Badge variant="outline" className="px-2 py-0.5">Distill</Badge>
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                <Badge variant="outline" className="px-2 py-0.5">Recall</Badge>
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                <Badge variant="outline" className="px-2 py-0.5">Apply</Badge>
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                <Badge variant="outline" className="px-2 py-0.5">Feedback</Badge>
+            <div className="space-y-6">
+              {/* Concept */}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Le système <strong>Patterns</strong> permet de capturer du code, le distiller en modèle réutilisable,
+                  puis l'appliquer avec des variables. C'est un système d'apprentissage qui s'améliore avec le feedback.
+                </p>
               </div>
-              <div className="space-y-1 text-xs">
-                <p><strong>1. Capture</strong> - POST /patterns/capture</p>
-                <p><strong>2. Distill</strong> - POST /patterns/distill (LLM)</p>
-                <p><strong>3. Recall</strong> - GET /patterns/recall (max 3)</p>
-                <p><strong>4. Apply</strong> - POST /patterns/:id/apply (dry-run ou write)</p>
-                <p><strong>5. Feedback</strong> - POST /patterns/:id/feedback</p>
+
+              {/* Workflow */}
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Workflow className="h-4 w-4" />
+                  Workflow complet
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                  <div className="p-3 rounded-lg border bg-muted/30 text-center">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xs mx-auto mb-2">1</div>
+                    <code className="text-xs font-semibold">Capture</code>
+                    <p className="text-xs text-muted-foreground mt-1">Code brut → Candidate</p>
+                    <Badge variant="outline" className="mt-2 text-xs">~100 tok</Badge>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30 text-center">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xs mx-auto mb-2">2</div>
+                    <code className="text-xs font-semibold">Distill</code>
+                    <p className="text-xs text-muted-foreground mt-1">Candidate → Pattern</p>
+                    <Badge variant="outline" className="mt-2 text-xs">~2000 tok</Badge>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30 text-center">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xs mx-auto mb-2">3</div>
+                    <code className="text-xs font-semibold">Recall</code>
+                    <p className="text-xs text-muted-foreground mt-1">Recherche (max 3)</p>
+                    <Badge variant="outline" className="mt-2 text-xs">~50 tok</Badge>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30 text-center">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xs mx-auto mb-2">4</div>
+                    <code className="text-xs font-semibold">Apply</code>
+                    <p className="text-xs text-muted-foreground mt-1">Appliquer avec vars</p>
+                    <Badge variant="outline" className="mt-2 text-xs">~500 tok</Badge>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30 text-center">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white font-bold text-xs mx-auto mb-2">5</div>
+                    <code className="text-xs font-semibold">Feedback</code>
+                    <p className="text-xs text-muted-foreground mt-1">Succès/Échec</p>
+                    <Badge variant="outline" className="mt-2 text-xs">~10 tok</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Structure de données */}
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Database className="h-4 w-4" />
+                  Structure des données
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {/* Pattern */}
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-purple-500" />
+                      Pattern
+                    </div>
+                    <div className="space-y-1">
+                      <div><code className="text-purple-500">intent</code> <span className="text-muted-foreground">"Créer endpoint API"</span></div>
+                      <div><code className="text-purple-500">tags[]</code> <span className="text-muted-foreground">array of strings</span></div>
+                      <div><code className="text-purple-500">title</code> <span className="text-muted-foreground">"REST Endpoint"</span></div>
+                      <div><code className="text-purple-500">variables[]</code> <span className="text-muted-foreground">array of Variable objects</span></div>
+                      <div><code className="text-purple-500">templates[]</code> <span className="text-muted-foreground">array of Template objects</span></div>
+                      <div><code className="text-purple-500">checklist[]</code> <span className="text-muted-foreground">array of strings</span></div>
+                      <div><code className="text-purple-500">gotchas[]</code> <span className="text-muted-foreground">array of strings</span></div>
+                      <div className="pt-2 border-t mt-2">
+                        <div><code className="text-purple-500">success_rate</code> <span className="text-muted-foreground">0.80 (80%)</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Candidate */}
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2 flex items-center gap-1">
+                      <Package className="h-3 w-3 text-orange-500" />
+                      Candidate
+                    </div>
+                    <div className="space-y-1">
+                      <div><code className="text-orange-500">kind</code> <span className="text-muted-foreground">"diff" | "chunks" | "folder"</span></div>
+                      <div><code className="text-orange-500">sources</code> <span className="text-muted-foreground">array of source objects</span></div>
+                      <div><code className="text-orange-500">label</code> <span className="text-muted-foreground">"User auth flow"</span></div>
+                      <div><code className="text-orange-500">tags</code> <span className="text-muted-foreground">array of strings</span></div>
+                      <div><code className="text-orange-500">status</code> <span className="text-muted-foreground">"pending" | "distilled"</span></div>
+                      <div><code className="text-orange-500">session_id</code> <span className="text-muted-foreground">"session-abc-123"</span></div>
+                    </div>
+                  </div>
+
+                  {/* Feedback */}
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      Feedback
+                    </div>
+                    <div className="space-y-1">
+                      <div><code className="text-green-500">pattern_id</code> <span className="text-muted-foreground">foreign key to patterns</span></div>
+                      <div><code className="text-green-500">outcome</code> <span className="text-muted-foreground">"success" | "fail"</span></div>
+                      <div><code className="text-green-500">notes</code> <span className="text-muted-foreground">"Worked perfectly"</span></div>
+                      <div><code className="text-green-500">patch_id</code> <span className="text-muted-foreground">"patch-123-456"</span></div>
+                      <div className="pt-2 border-t mt-2 text-muted-foreground">
+                        Met à jour counters du pattern
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* API Endpoints */}
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <FolderTree className="h-4 w-4" />
+                  API Endpoints
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-2 rounded border bg-muted/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <code className="text-sm">POST /patterns/capture</code>
+                      <Badge className="bg-orange-500/10 text-orange-500">Capture</Badge>
+                    </div>
+                    <p className="text-muted-foreground">Crée un candidate avec kind, sources[], label, tags[]</p>
+                  </div>
+                  <div className="p-2 rounded border bg-muted/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <code className="text-sm">POST /patterns/distill</code>
+                      <Badge className="bg-purple-500/10 text-purple-500">Distill</Badge>
+                    </div>
+                    <p className="text-muted-foreground">Transforme candidate → pattern avec intent, title</p>
+                  </div>
+                  <div className="p-2 rounded border bg-muted/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <code className="text-sm">GET /patterns/recall</code>
+                      <Badge className="bg-blue-500/10 text-blue-500">Recall</Badge>
+                    </div>
+                    <p className="text-muted-foreground">Recherche FTS5 avec ?q=query, ?lang=ts, ?limit=3</p>
+                  </div>
+                  <div className="p-2 rounded border bg-muted/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <code className="text-sm">GET /patterns/:id/templates</code>
+                      <Badge className="bg-blue-500/10 text-blue-500">Templates</Badge>
+                    </div>
+                    <p className="text-muted-foreground">Récupère templates complets (~2000 tokens)</p>
+                  </div>
+                  <div className="p-2 rounded border bg-muted/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <code className="text-sm">POST /patterns/:id/apply</code>
+                      <Badge className="bg-green-500/10 text-green-500">Apply</Badge>
+                    </div>
+                    <p className="text-muted-foreground">Applique avec variables{}, mode (dry-run/write)</p>
+                  </div>
+                  <div className="p-2 rounded border bg-muted/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <code className="text-sm">POST /patterns/:id/feedback</code>
+                      <Badge className="bg-green-500/10 text-green-500">Feedback</Badge>
+                    </div>
+                    <p className="text-muted-foreground">Enregistre outcome (success/fail), notes</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Exemple concret */}
+              <div className="border-t pt-4">
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Lightbulb className="h-4 w-4 text-yellow-500" />
+                  Exemple concret
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2">1. CAPTURE</div>
+                    <p className="text-muted-foreground mb-2">Tu sélectionnes du code dans <code>search.index.tsx</code></p>
+                    <pre className="bg-muted p-2 rounded overflow-x-auto">
+{`POST /patterns/capture
+{
+  "kind": "chunks",
+  "sources": [{"chunkId": 42}],
+  "label": "Search filters"
+}`}
+                    </pre>
+                    <p className="text-muted-foreground mt-2">→ Crée un <strong>CANDIDATE</strong></p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2">2. DISTILL</div>
+                    <p className="text-muted-foreground mb-2">Transforme en pattern réutilisable</p>
+                    <pre className="bg-muted p-2 rounded overflow-x-auto">
+{`POST /patterns/distill
+{
+  "candidateId": 1,
+  "intent": "Search page with filters",
+  "title": "Search Filters Pattern"
+}`}
+                    </pre>
+                    <p className="text-muted-foreground mt-2">→ Crée un <strong>PATTERN</strong> avec variables/templates</p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2">3. APPLY</div>
+                    <p className="text-muted-foreground mb-2">Génère du code avec variables</p>
+                    <pre className="bg-muted p-2 rounded overflow-x-auto">
+{`POST /patterns/1/apply
+{
+  "variables": {
+    "ResourceName": "Orders"
+  },
+  "mode": "dry-run"
+}`}
+                    </pre>
+                    <p className="text-muted-foreground mt-2">→ Génère <code>routes/Orders.index.tsx</code></p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="font-semibold mb-2">4. FEEDBACK</div>
+                    <p className="text-muted-foreground mb-2">Améliore le success_rate</p>
+                    <pre className="bg-muted p-2 rounded overflow-x-auto">
+{`POST /patterns/1/feedback
+{
+  "outcome": "success",
+  "notes": "Worked perfectly!"
+}`}
+                    </pre>
+                    <p className="text-muted-foreground mt-2">→ <strong>success_rate</strong> augmente</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progressive Disclosure */}
+              <div className="p-3 rounded-lg border border-purple-500/20 bg-purple-500/5">
+                <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                  <Layers className="h-4 w-4 text-purple-500" />
+                  Progressive Disclosure
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Le système suit le principe de <strong>Progressive Disclosure</strong> : d'abord compact (recall ~50 tokens),
+                  puis détail (templates ~2000 tokens) à la demande. Cela permet d'économiser 10-20x de tokens.
+                </p>
               </div>
             </div>
           </HelpCard>

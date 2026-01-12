@@ -809,5 +809,13 @@ export function createPatternsRoutes(getDb: () => Promise<Database>) {
     });
   });
 
+  // ==================== AUTO-CREATE DISABLED ====================
+  app.post('/auto-create', async (c) => {
+    return c.json({
+      error: 'Auto-create disabled',
+      message: 'Pattern auto-creation has been removed'
+    }, 410);
+  });
+
   return app;
 }

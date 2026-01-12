@@ -1,201 +1,173 @@
 # Nexus
 
-> **Memory-Powered Development with Token-Efficient MCP Tools**
+> **Memory-Powered Development System for Claude Code**
 
-Nexus est un système de gestion de connaissances pour développeurs qui combine recherche de code, mémoires contextuelles, et patterns réutilisables. Conçu pour intégration avec Claude Code via MCP.
+Nexus remplace `claude-mem` + `mgrep` avec une solution unifiée : recherche de code, mémoires contextuelles, et patterns réutilisables via MCP.
 
----
+## Pourquoi Nexus ?
 
-## 🎯 Pourquoi Nexus ?
+| Problème | Solution Nexus |
+|----------|----------------|
+| Tokens gaspillés (tout le codebase chargé) | **Progressive Disclosure** : 3 couches pour 10-20x économie |
+| Contexte perdu entre sessions | **Memory System** : décisions, préférences, découvertes persistées |
+| Patterns de code répétés | **Learning System** : capture et réapplique les templates |
 
-Le développement moderne avec LLM souffre de trois problèmes :
-
-1. **Gasillage de tokens** - Claude Code charge tout le codebase à chaque session
-2. **Perte de contexte** - Les décisions et apprentissages précédents sont oubliés
-3. **Répétition** - Les mêmes patterns de code sont réécrits maintes et maintes fois
-
-**Nexus résout ces problèmes avec :**
-
-- **Progressive Disclosure** : 3-couches pour économiser 10-20x de tokens
-- **Memory System** : Stocke les décisions, préférences, et découvertes
-- **Learning System** : Capture et réapplique les patterns de code
-
----
-
-## 🚀 Quick Start
+## Installation
 
 ### Prérequis
 
 - Node.js >= 22.0.0
 - Bun >= 1.0.0
-- SQLite (supporté nativement)
+- Python 3 (pour l'indexeur)
 
-### Installation
+### Installation Automatique
 
 ```bash
-# Cloner le repository
 git clone https://github.com/votre-org/nexus.git
 cd nexus
-
-# Installer les dépendances
-bun install
-
-# Builder les packages
-bun run build
+./install.sh
 ```
 
-### Démarrage
+Le script :
+1. Vérifie les prérequis
+2. Installe les dépendances (`bun install`)
+3. Build le projet (`bun run build`)
+4. Configure les hooks Claude Code
+5. Configure le serveur MCP
+6. Installe l'API comme service système
+7. Vérifie que tout fonctionne
+
+### Options d'Installation
 
 ```bash
-# Démarrer l'API server (sur http://localhost:3001)
-cd apps/api && bun run index.ts
-
-# Démarrer l'UI Web (sur http://localhost:5173)
-cd apps/web && bun run dev
+./install.sh              # Installation complète
+./install.sh --no-service # Sans service système (API manuelle)
+./install.sh --uninstall  # Désinstallation complète
+./install.sh --help       # Aide
 ```
 
----
+### Indexer votre Codebase
 
-## 📖 Utiliser Nexus avec Claude Code
-
-### Configuration MCP
-
-Ajoutez à votre `~/.claude.json` :
-
-```json
-{
-  "mcpServers": {
-    "nexus": {
-      "command": "bun",
-      "args": ["run", "/path/to/nexus/apps/mcp-server/src/index.ts"],
-      "env": {
-        "NEXUS_API_URL": "http://localhost:3001"
-      }
-    }
-  }
-}
+```bash
+python3 packages/indexer-py/main.py index .
 ```
 
-### Tools MCP Disponibles
+## Utilisation avec Claude Code
+
+Après installation, Nexus est automatiquement disponible via MCP.
+
+### Outils MCP Disponibles
 
 | Tool | Description | Tokens |
 |------|-------------|--------|
-| `code_search` | Recherche dans le code indexé | ~50/hit |
-| `code_open` | Lit un fichier ou extrait | ~200 max |
-| `memory_recall` | Rappelle les mémoires | ~50/item |
-| `memory_get` | Contenu complet par IDs | ~500/item |
-| `memory_upsert` | Crée/met à jour une mémoire | minimal |
-| `learning_recall` | Trouve les patterns applicables | ~100/pattern |
-| `learning_getTemplates` | Templates complets d'un pattern | ~2000 |
-| `learning_apply` | Applique un pattern (dry-run/write) | variable |
-| `learning_feedback` | Enregistre le résultat | minimal |
-| `repo_stats` | Statistiques du repository | ~50 |
+| `nexus_code` | Recherche code (keyword/semantic/hybrid) | ~50/hit |
+| `nexus_memory` | Mémoires (recall/get/upsert) | ~50-500/item |
+| `nexus_learn` | Patterns (recall/templates/apply) | ~100-2000 |
 
-### Workflow 3-Couches (Progressive Disclosure)
-
-Nexus utilise un système en 3 couches pour minimiser la consommation de tokens :
+### Progressive Disclosure (3 Couches)
 
 ```
 1. RECALL    → Index compact avec IDs        (~50 tokens/item)
 2. TIMELINE  → Contexte chronologique        (optionnel)
-3. GET/FETCH → Contenu complet (filtré)      (~500+ tokens/item)
+3. GET       → Contenu complet filtré        (~500 tokens/item)
 ```
 
-**Exemple d'utilisation :**
+**Exemple :**
 
 ```typescript
 // Étape 1: Rappeler les mémoires pertinentes
-memory_recall({ query: "auth implementation", limit: 10 })
-// → Retourne: [{id: 42, summary: "...", type: "decision"}, ...]
+nexus_memory({ action: "recall", query: "auth", limit: 5 })
+// → [{id: 42, summary: "JWT choisi pour auth", type: "decision"}]
 
-// Étape 2: Voir le contexte autour d'une mémoire
-memory_timeline({ anchor: 42, window: 5 })
-// → Retourne: {before: [...], after: [...]}
-
-// Étape 3: Récupérer le contenu complet
-memory_get({ ids: [42, 45, 47] })
-// → Retourne: Contenu narratif complet des 3 mémoires
+// Étape 2: Contenu complet si nécessaire
+nexus_memory({ action: "get", ids: [42] })
+// → Narrative complète avec facts/tags
 ```
 
----
-
-## 🧠 Concepts
-
-### Memory System
-
-Les mémoires stockent des informations contextuelles avec :
-
-- **Types** : `decision`, `preference`, `fact`, `note`, `discovery`, `bugfix`, `feature`, `refactor`, `change`
-- **Scopes** : `repo`, `branch`, `ticket`, `feature`, `global`
-- **Links** : Connexions vers des fichiers/chunks du codebase
-
-### Learning System
-
-Les patterns sont des templates de code réutilisables :
-
-1. **Capture** - Enregistre un exemple de code comme candidat
-2. **Distill** - Transforme le candidat en pattern avec variables
-3. **Recall** - Trouve les patterns applicables (max 3)
-4. **Apply** - Applique le pattern avec des variables (dry-run ou write)
-5. **Feedback** - Enregistre le succès/échec pour améliorer le ranking
-
----
-
-## 📁 Structure du Projet
+## Architecture
 
 ```
 nexus/
 ├── apps/
-│   ├── api/           # REST API (Hono + SQLite)
-│   ├── mcp-server/    # MCP Server (stdio transport)
+│   ├── api/           # REST API (Hono + SQLite) - Port 3001
+│   ├── mcp-server/    # Serveur MCP (stdio)
+│   ├── hooks/         # Hooks Claude Code
 │   └── web/           # UI Web (React + shadcn/ui)
 ├── packages/
-│   ├── storage/       # SQLite database + migrations
-│   ├── search/        # FTS5 + semantic search
-│   └── core/          # Core logic (memory, learning)
-├── planning/          # Sprint planning & specs
-└── docs/              # Documentation détaillée
+│   ├── core/          # Types partagés
+│   ├── storage/       # SQLite + migrations
+│   ├── search/        # FTS5 + embeddings
+│   └── indexer-py/    # Indexeur Python
+├── scripts/           # Scripts d'installation
+└── docs/              # Documentation
 ```
 
----
+## Configuration
 
-## 🔧 Configuration
-
-### Variables d'environnement
+### Variables d'Environnement (optionnel)
 
 ```bash
 # apps/api/.env
 PORT=3001
-
-# Pour la recherche sémantique (optionnel)
-MISTRAL_API_KEY=votre_clé_ici
-EMBEDDING_PROVIDER=mistral  # ou 'openai' | 'ollama'
+MISTRAL_API_KEY=votre_clé    # Pour recherche sémantique
+EMBEDDING_PROVIDER=mistral   # ou 'openai' | 'ollama'
 ```
 
-### Indexation du code
+### Fichiers de Configuration Claude
 
-> **Note:** Le file indexer est actuellement en standby. Utilisez un outil externe pour indexer votre codebase.
+- `~/.claude/settings.json` - Hooks
+- `~/.claude.json` - Serveurs MCP
 
-Pour rechercher dans votre code, utilisez `code_search` qui interroge la base FTS5 indexée.
+## Commandes
 
----
+```bash
+# Build
+bun run build              # Build tout
+bun run build:packages     # Build packages seulement
+bun run build:apps         # Build apps seulement
 
-## 📚 Documentation
+# Test
+bun test                   # Tous les tests
 
-- [Guide MCP Complet](docs/MCP_USAGE.md) - Utilisation détaillée des tools MCP
-- [API Reference](docs/API.md) - Endpoints HTTP de l'API
-- [Architecture](docs/ARCHITECTURE.md) - Architecture interne
-- [Sprint Planning](planning/sprints/_overview.md) - Roadmap du projet
+# Développement
+cd apps/api && bun run src/index.ts    # API server
+cd apps/web && bun run dev             # UI Web (dev)
 
----
+# Base de données
+python3 packages/indexer-py/main.py index .    # Indexer
+python3 packages/indexer-py/main.py status     # Stats
+./scripts/reset-db.sh                          # Reset
+```
 
-## 🤝 Contribution
+## Documentation
 
-Nexus est en développement actif. Consultez les [sprints](planning/sprints/) pour voir ce qui est prévu.
+- [API Reference](docs/API.md) - Endpoints REST
+- [MCP Usage](docs/MCP_USAGE.md) - Guide MCP détaillé
+- [CLAUDE.md](CLAUDE.md) - Instructions pour Claude Code
 
----
+## Types de Mémoires
 
-## 📄 Licence
+| Type | Usage |
+|------|-------|
+| `decision` | Choix architecturaux |
+| `preference` | Préférences utilisateur |
+| `fact` | Informations factuelles |
+| `discovery` | Découvertes techniques |
+| `bugfix` | Bugs résolus |
+| `feature` | Features implémentées |
+| `refactor` | Refactorings effectués |
+
+## Scopes
+
+| Scope | Portée |
+|-------|--------|
+| `repo` | Repository entier |
+| `branch` | Branche spécifique |
+| `ticket` | Ticket/Issue |
+| `feature` | Feature spécifique |
+| `global` | Tous les projets |
+
+## Licence
 
 MIT
 

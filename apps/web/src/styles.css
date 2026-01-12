@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-@import 'highlight.js/styles/github-dark.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -342,95 +341,165 @@
   mix-blend-mode: overlay;
 }
 
-/* Highlight.js syntax highlighting */
-.hljs {
+/* Highlight.js syntax highlighting - use github-dark theme */
+code.hljs {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
   background: transparent !important;
   padding: 0 !important;
 }
 
-.hljs code {
+/* ========================================
+   TERMINAL / SYSTEM LOGS STYLES
+   ======================================== */
+
+/* Terminal color variables */
+:root {
+  /* Log Levels */
+  --log-debug: oklch(0.70 0.10 260);
+  --log-info: oklch(0.75 0.15 200);
+  --log-warning: oklch(0.78 0.16 80);
+  --log-error: oklch(0.70 0.18 15);
+  --log-critical: oklch(0.65 0.20 15);
+
+  /* Terminal Background */
+  --terminal-bg: oklch(0.12 0.01 260);
+  --terminal-bg-elevated: oklch(0.16 0.01 260);
+  --terminal-border: oklch(0.25 0.01 260);
+  --terminal-text: oklch(0.90 0.01 260);
+
+  /* ANSI Colors */
+  --ansi-black: oklch(0.30 0.01 260);
+  --ansi-red: oklch(0.60 0.20 15);
+  --ansi-green: oklch(0.75 0.18 160);
+  --ansi-yellow: oklch(0.80 0.15 85);
+  --ansi-blue: oklch(0.70 0.15 250);
+  --ansi-magenta: oklch(0.70 0.18 300);
+  --ansi-cyan: oklch(0.75 0.15 200);
+  --ansi-white: oklch(0.90 0.01 260);
+}
+
+/* Terminal container */
+.terminal-container {
+  background: var(--terminal-bg);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.875rem;
-  line-height: 1.6;
+  color: var(--terminal-text);
+  border-radius: var(--radius-lg);
 }
 
-/* Override github-dark theme colors for our dark background */
-.hljs {
-  color: oklch(0.9 0.01 260);
+/* Log entry */
+.log-entry {
+  border-bottom: 1px solid oklch(1 0 0 / 0.05);
+  transition: background-color 0.15s ease;
 }
 
-.hljs-comment,
-.hljs-quote {
-  color: oklch(0.6 0.01 260);
+.log-entry:hover {
+  background-color: oklch(1 0 0 / 0.03);
 }
 
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-subst {
-  color: oklch(0.75 0.18 160);
+/* Log level badges */
+.log-badge.debug {
+  background: oklch(0.30 0.05 260 / 0.3);
+  color: var(--log-debug);
+  border: 1px solid oklch(0.30 0.05 260 / 0.5);
 }
 
-.hljs-number,
-.hljs-literal,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-tag .hljs-attr {
-  color: oklch(0.75 0.18 80);
+.log-badge.info {
+  background: oklch(0.30 0.08 200 / 0.3);
+  color: var(--log-info);
+  border: 1px solid oklch(0.30 0.08 200 / 0.5);
 }
 
-.hljs-string,
-.hljs-doctag {
-  color: oklch(0.75 0.15 45);
+.log-badge.warning {
+  background: oklch(0.30 0.10 80 / 0.3);
+  color: var(--log-warning);
+  border: 1px solid oklch(0.30 0.10 80 / 0.5);
 }
 
-.hljs-title,
-.hljs-section,
-.hljs-selector-id {
-  color: oklch(0.75 0.18 280);
+.log-badge.error {
+  background: oklch(0.30 0.12 15 / 0.3);
+  color: var(--log-error);
+  border: 1px solid oklch(0.30 0.12 15 / 0.5);
 }
 
-.hljs-type,
-.hljs-class .hljs-title {
-  color: oklch(0.75 0.18 15);
+.log-badge.critical {
+  background: oklch(0.30 0.15 15 / 0.3);
+  color: var(--log-critical);
+  border: 1px solid oklch(0.30 0.15 15 / 0.5);
 }
 
-.hljs-tag,
-.hljs-name,
-.hljs-attribute {
-  color: oklch(0.65 0.15 200);
+/* ANSI color classes */
+.ansi-black { color: var(--ansi-black); }
+.ansi-red { color: var(--ansi-red); }
+.ansi-green { color: var(--ansi-green); }
+.ansi-yellow { color: var(--ansi-yellow); }
+.ansi-blue { color: var(--ansi-blue); }
+.ansi-magenta { color: var(--ansi-magenta); }
+.ansi-cyan { color: var(--ansi-cyan); }
+.ansi-white { color: var(--ansi-white); }
+
+.ansi-bright-black { color: oklch(0.50 0.01 260); }
+.ansi-bright-red { color: oklch(0.75 0.18 15); }
+.ansi-bright-green { color: oklch(0.85 0.15 160); }
+.ansi-bright-yellow { color: oklch(0.90 0.12 85); }
+.ansi-bright-blue { color: oklch(0.85 0.12 250); }
+.ansi-bright-magenta { color: oklch(0.85 0.15 300); }
+.ansi-bright-cyan { color: oklch(0.85 0.12 200); }
+.ansi-bright-white { color: oklch(0.98 0.01 260); }
+
+/* ANSI background colors */
+.ansi-bg-black { background-color: var(--ansi-black); }
+.ansi-bg-red { background-color: var(--ansi-red); }
+.ansi-bg-green { background-color: var(--ansi-green); }
+.ansi-bg-yellow { background-color: var(--ansi-yellow); }
+.ansi-bg-blue { background-color: var(--ansi-blue); }
+.ansi-bg-magenta { background-color: var(--ansi-magenta); }
+.ansi-bg-cyan { background-color: var(--ansi-cyan); }
+.ansi-bg-white { background-color: var(--ansi-white); }
+
+/* ANSI formatting */
+.ansi-bold { font-weight: 700; }
+.ansi-dim { opacity: 0.7; }
+.ansi-italic { font-style: italic; }
+.ansi-underline { text-decoration: underline; }
+.ansi-blink { animation: blink 1s infinite; }
+.ansi-reverse {
+  filter: invert(1);
+}
+.ansi-hidden { display: none; }
+.ansi-strikethrough { text-decoration: line-through; }
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
-.hljs-regexp,
-.hljs-link {
-  color: oklch(0.75 0.18 220);
+/* Terminal border */
+.border-terminal-border {
+  border-color: var(--terminal-border);
 }
 
-.hljs-symbol,
-.hljs-bullet {
-  color: oklch(0.75 0.15 250);
+/* Terminal background */
+.bg-terminal-bg {
+  background-color: var(--terminal-bg);
 }
 
-.hljs-built_in,
-.hljs-builtin-name {
-  color: oklch(0.75 0.18 30);
+/* Terminal scrollbar */
+.terminal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.hljs-meta {
-  color: oklch(0.6 0.12 260);
+.terminal-scrollbar::-webkit-scrollbar-track {
+  background: var(--terminal-bg);
 }
 
-.hljs-deletion {
-  background: oklch(0.70 0.18 15 / 0.2);
+.terminal-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.30 0.01 260);
+  border-radius: 4px;
 }
 
-.hljs-addition {
-  background: oklch(0.75 0.18 160 / 0.2);
-}
-
-.hljs-emphasis {
-  font-style: italic;
-}
-
-.hljs-strong {
-  font-weight: bold;
+.terminal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.40 0.01 260);
 }

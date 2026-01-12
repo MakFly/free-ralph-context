@@ -135,42 +135,6 @@ function SearchSkeleton() {
   )
 }
 
-function LearningSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-9 w-32" />
-          <Skeleton className="h-4 w-56" />
-        </div>
-        <Skeleton className="h-6 w-24" />
-      </div>
-      <div className="rounded-lg border bg-card p-6">
-        <div className="flex gap-2">
-          <Skeleton className="h-10 flex-1" />
-          <Skeleton className="h-10 w-24" />
-        </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="rounded-lg border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-5 w-12" />
-            </div>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-            <div className="flex gap-2">
-              <Skeleton className="h-5 w-14" />
-              <Skeleton className="h-5 w-14" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function StatsSkeleton() {
   return (
     <div className="space-y-6">
@@ -200,6 +164,5 @@ export {
   DashboardSkeleton,
   MemoriesSkeleton,
   SearchSkeleton,
-  LearningSkeleton,
   StatsSkeleton,
 }

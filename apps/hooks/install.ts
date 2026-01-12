@@ -48,6 +48,10 @@ function getHooksConfig(): Record<string, HookConfig> {
       matcher: '',
       hooks: [{ type: 'command', command: `bun run ${HOOKS_DIST}/session-start.js`, timeout: 5000 }]
     },
+    UserPromptSubmit: {
+      matcher: '',
+      hooks: [{ type: 'command', command: `bun run ${HOOKS_DIST}/user-prompt-submit.js`, timeout: 5000 }]
+    },
     PreToolUse: {
       matcher: '',
       hooks: [{ type: 'command', command: `bun run ${HOOKS_DIST}/pre-tool-use.js`, timeout: 2000 }]

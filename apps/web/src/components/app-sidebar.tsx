@@ -3,12 +3,12 @@
 import * as React from "react"
 import { Link } from "@tanstack/react-router"
 import { IconInnerShadowTop } from "@tabler/icons-react"
-import type { Icon } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavDocuments } from "@/components/nav-documents"
 import { NavUser } from "@/components/nav-user"
 import { StatusCard } from "@/components/status-card"
+import { SynthesisProviderBadge } from "@/components/synthesis-badge"
 import {
   Sidebar,
   SidebarContent,
@@ -21,17 +21,18 @@ import {
 import {
   BarChart3Icon,
   BrainIcon,
+  CalendarIcon,
   LayoutDashboardIcon,
   SearchIcon,
   SparklesIcon,
-  NetworkIcon,
   FolderCodeIcon,
   HelpCircleIcon,
   SettingsIcon,
   GitCompareArrowsIcon,
   MonitorIcon,
-  ScrollTextIcon,
+  FlaskConicalIcon,
 } from "lucide-react"
+import { useNexusStore } from "@/stores/nexusStore"
 
 const data = {
   user: {
@@ -57,11 +58,6 @@ const data = {
       url: "/memories",
       icon: BrainIcon,
     },
-    {
-      name: "Relationships",
-      url: "/relationships",
-      icon: NetworkIcon,
-    },
   ],
   tools: [
     {
@@ -82,14 +78,19 @@ const data = {
       icon: MonitorIcon,
     },
     {
-      name: "Logs",
-      url: "/logs",
-      icon: ScrollTextIcon,
+      name: "History",
+      url: "/sessions-history",
+      icon: CalendarIcon,
     },
     {
       name: "Stats",
       url: "/stats",
       icon: BarChart3Icon,
+    },
+    {
+      name: "Playground",
+      url: "/playground",
+      icon: FlaskConicalIcon,
     },
   ],
   footer: [
@@ -112,6 +113,23 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { projects, fetchProjects } = useNexusStore()
+
+  // Load projects on mount
+  React.useEffect(() => {
+    fetchProjects()
+  }, [])
+
+  // Build tools with project count badge on Codebase
+  const toolsWithBadge = React.useMemo(() => {
+    return data.tools.map((item) => {
+      if (item.name === 'Codebase') {
+        return { ...item, badge: projects.length }
+      }
+      return item
+    })
+  }, [projects.length])
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -132,11 +150,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.content} title="Content" />
-        <NavDocuments items={data.tools} title="Tools" />
+        <NavDocuments items={toolsWithBadge} title="Tools" />
         <NavDocuments items={data.analytics} title="Analytics" />
       </SidebarContent>
       <SidebarFooter>
         <NavDocuments items={data.footer} title="" />
+        <div className="flex items-center justify-between px-2 py-1">
+          <span className="text-xs text-muted-foreground">Synthesis</span>
+          <SynthesisProviderBadge />
+        </div>
         <StatusCard />
         <NavUser user={data.user} />
       </SidebarFooter>

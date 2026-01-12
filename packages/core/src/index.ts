@@ -198,3 +198,107 @@ export interface CompressionSettings {
   maxTokens: number;
   llmModel: string;
 }
+
+/**
+ * Candidate pattern for distillation
+ */
+export interface Candidate {
+  id: number;
+  kind: 'diff' | 'chunks' | 'folder';
+  sources: PatternSource[];
+  label?: string;
+  tags: string[];
+  status: 'pending' | 'distilled' | 'archived';
+  created_at: number;
+}
+
+/**
+ * Pattern source reference
+ */
+export interface PatternSource {
+  chunkId?: number;
+  fileId?: number;
+}
+
+/**
+ * Compact candidate for UI
+ */
+export interface CandidateCompact {
+  id: number;
+  kind: 'diff' | 'chunks' | 'folder';
+  sources: PatternSource[];
+  label?: string;
+  tags: string[];
+  status: 'pending' | 'distilled' | 'archived';
+}
+
+/**
+ * Result of post-index analysis
+ */
+export interface IndexAnalysis {
+  patterns_detected: number;
+  memories_suggested: number;
+  candidates_created: CandidateCompact[];
+  memory_suggestions: MemorySuggestion[];
+  errors: string[];
+}
+
+/**
+ * Memory suggestion from post-index analysis
+ */
+export interface MemorySuggestion {
+  memory_id: number;
+  summary: string;
+  keyword: string;
+  relevance: number;
+}
+
+/**
+ * Index statistics for analysis
+ */
+export interface IndexStats {
+  files_scanned: number;
+  files_indexed: number;
+  files_skipped: number;
+  chunks_created: number;
+  errors: Array<{ path: string; error: string }>;
+}
+
+/**
+ * Log severity levels
+ */
+export type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+
+/**
+ * Log source components
+ */
+export type LogSource = 'api' | 'indexer' | 'database' | 'system' | 'hooks';
+
+/**
+ * System log entry
+ */
+export interface SystemLog {
+  id: number;
+  timestamp: number;
+  level: LogLevel;
+  source: LogSource;
+  component?: string;
+  hook_name?: string;
+  message: string;
+  metadata?: Record<string, any>;
+  session_id?: string;
+  created_at?: number;
+}
+
+/**
+ * Log filters for querying
+ */
+export interface LogFilters {
+  levels: LogLevel[];
+  sources: LogSource[];
+  searchQuery: string;
+  startTime?: number;
+  endTime?: number;
+  component?: string;
+  sessionId?: string;
+}

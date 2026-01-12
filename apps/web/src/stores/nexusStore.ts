@@ -7,12 +7,14 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { logger } from '@/lib/logger'
+import { getSafeStorage } from '@/lib/storage'
 
 // Nexus API types
 export interface NexusSearchOptions {
   query: string
   mode?: 'keyword'
   k?: number
+  offset?: number
   filters?: {
     pathGlob?: string
     lang?: string
@@ -239,6 +241,19 @@ export interface CandidateCompact {
   created_at: number
 }
 
+// Synthesis types (Sprint 8)
+export type SynthesisMode = 'auto' | 'algorithmic' | 'llm'
+export type SynthesisProvider = 'anthropic' | 'mistral' | 'openai'
+
+export interface SynthesisStatus {
+  mode: SynthesisMode
+  provider?: SynthesisProvider
+  confidence: number
+  model?: string
+  configured: boolean
+  apiKeyMasked?: string
+}
+
 export interface PatternCreateInput {
   intent: string
   title: string
@@ -273,13 +288,14 @@ interface NexusStore {
   lastError: string | null
   projects: Project[]
   activeProject: Project | null
-  lastStatsFetch: number | null  // Timestamp of last stats fetch
   lastConnectionCheck: number | null  // Timestamp of last connection check
+  synthesisStatus: SynthesisStatus | null  // Sprint 8: Synthesis configuration status
 
   // Actions - Core
   setApiBaseUrl: (url: string) => void
   checkConnection: () => Promise<boolean>
   fetchStats: () => Promise<void>
+  fetchSynthesisStatus: () => Promise<void>  // Sprint 8: Fetch synthesis configuration
   search: (options: NexusSearchOptions) => Promise<NexusSearchResult>
   open: (path: string, startLine: number, endLine?: number) => Promise<NexusOpenResult | null>
   clearError: () => void
@@ -336,8 +352,8 @@ export const useNexusStore = create<NexusStore>()(
       lastError: null,
       projects: [],
       activeProject: null,
-      lastStatsFetch: null,
       lastConnectionCheck: null,
+      synthesisStatus: null,
 
       setApiBaseUrl: (url) => set({ apiBaseUrl: url }),
 
@@ -369,17 +385,8 @@ export const useNexusStore = create<NexusStore>()(
         }
       },
 
-      fetchStats: async (forceRefresh = false) => {
+      fetchStats: async () => {
         try {
-          const { lastStatsFetch } = get()
-          const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-          // Check if stats are cached and still fresh
-          if (!forceRefresh && lastStatsFetch && (Date.now() - lastStatsFetch) < CACHE_DURATION) {
-            logger.debug('Using cached stats', { age: Date.now() - lastStatsFetch }, 'API Stats')
-            return
-          }
-
           logger.debug('Fetching stats', { url: `${get().apiBaseUrl}/stats` }, 'API Stats')
           const response = await fetch(`${get().apiBaseUrl}/stats`)
           if (!response.ok) {
@@ -388,7 +395,7 @@ export const useNexusStore = create<NexusStore>()(
           }
           const stats = await response.json()
           logger.info('Stats fetched', stats, 'API Stats')
-          set({ stats, lastStatsFetch: Date.now() })
+          set({ stats })
         } catch (e) {
           logger.error('Stats fetch error', e instanceof Error ? e.message : e, 'API Stats')
           set({ lastError: e instanceof Error ? e.message : 'Failed to fetch stats' })
@@ -396,13 +403,37 @@ export const useNexusStore = create<NexusStore>()(
         }
       },
 
+      fetchSynthesisStatus: async () => {
+        try {
+          logger.debug('Fetching synthesis status', { url: `${get().apiBaseUrl}/settings/synthesis` }, 'API Synthesis')
+          const response = await fetch(`${get().apiBaseUrl}/settings/synthesis`)
+          if (!response.ok) {
+            logger.error('Failed to fetch synthesis status', { status: response.status }, 'API Synthesis')
+            throw new Error('Failed to fetch synthesis status')
+          }
+          const status = await response.json()
+          logger.info('Synthesis status fetched', status, 'API Synthesis')
+          set({ synthesisStatus: status })
+        } catch (e) {
+          logger.error('Synthesis status fetch error', e instanceof Error ? e.message : e, 'API Synthesis')
+          set({ lastError: e instanceof Error ? e.message : 'Failed to fetch synthesis status' })
+          throw e
+        }
+      },
+
       search: async (options) => {
         try {
-          logger.debug('Executing search', { query: options.query, mode: options.mode }, 'API Search')
+          const { activeProject } = get()
+          logger.debug('Executing search', { query: options.query, mode: options.mode, projectId: activeProject?.id }, 'API Search')
           // API expects 'q' instead of 'query', 'limit' instead of 'k'
-          const apiPayload = {
+          const apiPayload: Record<string, any> = {
             q: options.query,
             limit: options.k || 20,
+            offset: options.offset || 0,
+          }
+          // Add project_id filter if a project is active
+          if (activeProject?.id) {
+            apiPayload.project_id = activeProject.id
           }
           const response = await fetch(`${get().apiBaseUrl}/search`, {
             method: 'POST',
@@ -840,7 +871,13 @@ export const useNexusStore = create<NexusStore>()(
     {
       name: 'nexus-storage',
       version: 0, // Force cache invalidation - always start fresh
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => getSafeStorage()),
+      // Exclude volatile data from persistence - stats should always be fresh
+      partialize: (state) => ({
+        apiBaseUrl: state.apiBaseUrl,
+        activeProject: state.activeProject,
+        // Exclude: stats, isConnected, lastError, projects, lastConnectionCheck
+      }),
     }
   )
 )

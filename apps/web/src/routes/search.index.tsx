@@ -8,12 +8,20 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ServerOffIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon as ChevronRightDoubleIcon,
 } from 'lucide-react'
 import { AppLayout } from '@/components/app-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible'
 
 export const Route = createFileRoute('/search/')({
   component: SearchPage,
@@ -32,12 +40,20 @@ function SearchPage() {
   const [results, setResults] = useState<NexusSearchResult | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [searching, setSearching] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 12
 
-  const handleSearch = async () => {
+  const totalPages = results ? Math.ceil(results.totalCount / pageSize) : 0
+  const startResult = (currentPage - 1) * pageSize + 1
+  const endResult = Math.min(currentPage * pageSize, results?.totalCount || 0)
+
+  const handleSearch = async (page: number = 1) => {
     if (!query.trim() || !isConnected) return
     setSearching(true)
+    setCurrentPage(page)
     try {
-      const searchResults = await search({ query, mode: 'keyword', k: 12 })
+      const offset = (page - 1) * pageSize
+      const searchResults = await search({ query, mode: 'keyword', k: pageSize, offset })
       setResults(searchResults)
       setHasSearched(true)
     } catch (e) {
@@ -51,6 +67,7 @@ function SearchPage() {
     setQuery('')
     setResults(null)
     setHasSearched(false)
+    setCurrentPage(1)
   }
 
   if (!isConnected) {
@@ -160,39 +177,108 @@ function SearchPage() {
           </Card>
         ) : (
           <div className="space-y-4">
+            {/* Results Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <CodeIcon className="h-5 w-5" />
-                Results ({results.hits.length})
-                {results.totalCount > results.hits.length && (
-                  <span className="text-sm font-normal text-muted-foreground">
-                    of {results.totalCount} total
-                  </span>
-                )}
+                Results ({startResult}-{endResult} of {results.totalCount})
               </h3>
               <span className="text-sm text-muted-foreground">{results.duration}ms</span>
             </div>
+
+            {/* Results List */}
             <div className="grid gap-3">
-              {results.hits.map((hit, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <CodeIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <code className="text-sm font-mono text-primary">{hit.snippet}</code>
-                          {hit.symbol && <Badge variant="outline" className="text-xs">{hit.symbol}</Badge>}
-                          <span className="text-xs text-muted-foreground">{hit.startLine}:{hit.endLine}</span>
+              {results.hits.map((hit, index) => {
+                const globalIndex = (currentPage - 1) * pageSize + index
+                return (
+                  <Collapsible key={globalIndex} defaultOpen={false} className="border-0">
+                    <Card className="hover:shadow-md transition-shadow">
+                      <CollapsibleTrigger className="p-4 hover:bg-muted/50">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <CodeIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <code className="text-sm font-mono text-primary">{hit.snippet.slice(0, 60)}{hit.snippet.length > 60 ? '...' : ''}</code>
+                              {hit.symbol && <Badge variant="outline" className="text-xs">{hit.symbol}</Badge>}
+                              <span className="text-xs text-muted-foreground">{hit.startLine}:{hit.endLine}</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">{hit.path}</div>
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">{hit.path}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="border-t">
+                        <div className="ml-13 mt-2 p-3 bg-muted rounded-lg">
+                          <pre className="text-sm font-mono whitespace-pre-wrap overflow-x-auto">
+                            <code>{hit.snippet}</code>
+                          </pre>
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                )
+              })}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSearch(currentPage - 1)}
+                        disabled={currentPage === 1 || searching}
+                      >
+                        <ChevronLeftIcon className="h-4 w-4" />
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum: number
+                          if (totalPages <= 5) {
+                            pageNum = i + 1
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i
+                          } else {
+                            pageNum = currentPage - 2 + i
+                          }
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="w-9 h-9"
+                              onClick={() => handleSearch(pageNum)}
+                              disabled={searching}
+                            >
+                              {pageNum}
+                            </Button>
+                          )
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSearch(currentPage + 1)}
+                        disabled={currentPage === totalPages || searching}
+                      >
+                        Next
+                        <ChevronRightDoubleIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

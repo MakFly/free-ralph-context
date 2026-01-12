@@ -1,29 +1,24 @@
 /**
  * Hook: SessionEnd
  * Triggered when Claude Code session ends
+ *
+ * Simplified: Cleanup only, no auto-processing
  */
 
-const NEXUS_API = process.env.NEXUS_API || 'http://localhost:3001';
+import { unlinkSync, existsSync } from 'fs';
 
-async function main(): Promise<void> {
-  const sessionId = process.env.NEXUS_SESSION_ID || `unknown-${Date.now()}`;
-  const cwd = process.cwd();
-  const project = cwd.split('/').pop() || 'unknown';
+const SESSION_FILE = '/tmp/nexus-session-id';
+const SESSION_META_FILE = '/tmp/nexus-session-meta.json';
 
+function main(): void {
   try {
-    fetch(`${NEXUS_API}/capture`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        hook_name: 'sessionEnd',
-        payload: {
-          project,
-          cwd,
-          timestamp: Date.now(),
-        }
-      })
-    }).catch(() => {});
+    // Cleanup: Remove session files
+    if (existsSync(SESSION_FILE)) {
+      unlinkSync(SESSION_FILE);
+    }
+    if (existsSync(SESSION_META_FILE)) {
+      unlinkSync(SESSION_META_FILE);
+    }
 
     console.log(JSON.stringify({ result: 'continue' }));
   } catch {

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNexusStore } from '@/stores/nexusStore'
 import {
   BrainIcon,
@@ -10,51 +10,127 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ServerOffIcon,
+  RefreshCwIcon,
+  InfoIcon,
+  RadioIcon,
+  WifiOffIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AppLayout } from '@/components/app-layout'
 import { DashboardSkeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
 })
+
+// SSE Stream types
+interface StreamObservation {
+  id: number
+  type: string
+  title: string
+  summary?: string
+  project: string
+  created_at: number
+}
 
 function Dashboard() {
   const {
     isConnected,
     stats,
     recallMemories,
+    fetchStats,
+    apiBaseUrl,
   } = useNexusStore()
 
   const [loading, setLoading] = useState(true)
   const [recentMemories, setRecentMemories] = useState<any[]>([])
   const [totalMemories, setTotalMemories] = useState(0)
+  const [refreshingStats, setRefreshingStats] = useState(false)
+
+  // SSE Stream state
+  const [streamConnected, setStreamConnected] = useState(false)
+  const [liveObservations, setLiveObservations] = useState<StreamObservation[]>([])
+  const eventSourceRef = useRef<EventSource | null>(null)
+
+  // Setup SSE stream for real-time observations
+  useEffect(() => {
+    if (!isConnected) return
+
+    const connectStream = () => {
+      try {
+        const es = new EventSource(`${apiBaseUrl}/stream`)
+
+        es.addEventListener('connected', () => {
+          setStreamConnected(true)
+        })
+
+        es.addEventListener('observation', (event) => {
+          const observation = JSON.parse(event.data) as StreamObservation
+          setLiveObservations(prev => [observation, ...prev].slice(0, 10))
+          setTotalMemories(prev => prev + 1)
+        })
+
+        es.addEventListener('error', () => {
+          setStreamConnected(false)
+        })
+
+        es.onerror = () => {
+          setStreamConnected(false)
+          // Reconnect after 5 seconds
+          setTimeout(connectStream, 5000)
+        }
+
+        eventSourceRef.current = es
+      } catch {
+        setStreamConnected(false)
+      }
+    }
+
+    connectStream()
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+    }
+  }, [isConnected, apiBaseUrl])
 
   useEffect(() => {
-    // Only load memories, connection and stats are loaded by root loader
-    const loadMemories = async () => {
+    // Load stats and memories on mount
+    const loadData = async () => {
       try {
+        await fetchStats()
         const result = await recallMemories({ limit: 5 })
         setRecentMemories(result.memories)
         setTotalMemories(result.total)
       } catch (e) {
-        console.error('Failed to load memories:', e)
+        console.error('Failed to load data:', e)
       } finally {
         setLoading(false)
       }
     }
-    loadMemories()
+    loadData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const quickActions = [
     { title: 'Memories', description: 'Browse and manage', icon: BrainIcon, href: '/memories', color: 'text-purple-500' },
     { title: 'Search', description: 'Search your code', icon: SearchIcon, href: '/search', color: 'text-green-500' },
-    { title: 'Learning', description: 'View patterns', icon: BarChart3Icon, href: '/learning', color: 'text-orange-500' },
     { title: 'Statistics', description: 'View stats', icon: BarChart3Icon, href: '/stats', color: 'text-blue-500' },
   ]
+
+  const handleRefreshStats = async () => {
+    setRefreshingStats(true)
+    try {
+      await fetchStats()
+    } finally {
+      setRefreshingStats(false)
+    }
+  }
 
   // Loading state - show skeleton
   if (loading) {
@@ -101,17 +177,42 @@ function Dashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">Welcome to Nexus</p>
           </div>
-          <Badge variant="outline" className="gap-1">
-            <CheckCircleIcon className="h-3 w-3 text-green-500" />
-            Connected
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              {streamConnected ? (
+                <>
+                  <RadioIcon className="h-3 w-3 text-green-500 animate-pulse" />
+                  Live
+                </>
+              ) : (
+                <>
+                  <WifiOffIcon className="h-3 w-3 text-muted-foreground" />
+                  Stream Off
+                </>
+              )}
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <CheckCircleIcon className="h-3 w-3 text-green-500" />
+              Connected
+            </Badge>
+          </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Indexed Files</CardTitle>
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium">Indexed Files</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <InfoIcon className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Source code files scanned and stored in the database. Use `nexus sync` to index your project.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <FolderKanbanIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -122,7 +223,17 @@ function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Code Chunks</CardTitle>
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium">Code Chunks</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <InfoIcon className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Searchable code fragments (functions, classes, blocks). Each file is split into chunks for precise search results.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <SearchIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -133,7 +244,17 @@ function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Memories</CardTitle>
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium">Total Memories</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <InfoIcon className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Stored knowledge: decisions, discoveries, bugfixes, and patterns captured during your work sessions.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <BrainIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -145,7 +266,16 @@ function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Status</CardTitle>
-              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefreshStats}
+                disabled={refreshingStats}
+                className="h-6 w-6"
+                title="Refresh stats"
+              >
+                <RefreshCwIcon className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">Ready</div>
@@ -153,6 +283,39 @@ function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Live Stream - Only show if we have live observations */}
+        {liveObservations.length > 0 && (
+          <Card className="border-green-500/20 bg-green-500/5">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RadioIcon className="h-4 w-4 text-green-500 animate-pulse" />
+                  <CardTitle className="text-sm">Live Activity</CardTitle>
+                </div>
+                <Badge variant="outline" className="text-xs">{liveObservations.length} new</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {liveObservations.slice(0, 5).map((obs) => (
+                  <div
+                    key={obs.id}
+                    className="flex items-center gap-2 text-sm animate-in slide-in-from-top-2 duration-300"
+                  >
+                    <Badge variant="secondary" className="text-xs capitalize shrink-0">
+                      {obs.type}
+                    </Badge>
+                    <span className="truncate text-muted-foreground">{obs.summary || obs.title}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(obs.created_at).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Memories */}
         <Card>

@@ -13,11 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatsIndexRouteImport } from './routes/stats.index'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SessionsIndexRouteImport } from './routes/sessions.index'
+import { Route as SessionsHistoryIndexRouteImport } from './routes/sessions-history.index'
 import { Route as SearchIndexRouteImport } from './routes/search.index'
 import { Route as RelationshipsIndexRouteImport } from './routes/relationships.index'
+import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
 import { Route as MemoriesIndexRouteImport } from './routes/memories.index'
-import { Route as LogsIndexRouteImport } from './routes/logs.index'
-import { Route as LearningIndexRouteImport } from './routes/learning.index'
 import { Route as HelpIndexRouteImport } from './routes/help.index'
 import { Route as CodebaseIndexRouteImport } from './routes/codebase.index'
 import { Route as ChangelogIndexRouteImport } from './routes/changelog.index'
@@ -43,6 +43,11 @@ const SessionsIndexRoute = SessionsIndexRouteImport.update({
   path: '/sessions/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsHistoryIndexRoute = SessionsHistoryIndexRouteImport.update({
+  id: '/sessions-history/',
+  path: '/sessions-history/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchIndexRoute = SearchIndexRouteImport.update({
   id: '/search/',
   path: '/search/',
@@ -53,19 +58,14 @@ const RelationshipsIndexRoute = RelationshipsIndexRouteImport.update({
   path: '/relationships/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlaygroundIndexRoute = PlaygroundIndexRouteImport.update({
+  id: '/playground/',
+  path: '/playground/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MemoriesIndexRoute = MemoriesIndexRouteImport.update({
   id: '/memories/',
   path: '/memories/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogsIndexRoute = LogsIndexRouteImport.update({
-  id: '/logs/',
-  path: '/logs/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LearningIndexRoute = LearningIndexRouteImport.update({
-  id: '/learning/',
-  path: '/learning/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpIndexRoute = HelpIndexRouteImport.update({
@@ -95,11 +95,11 @@ export interface FileRoutesByFullPath {
   '/changelog': typeof ChangelogIndexRoute
   '/codebase': typeof CodebaseIndexRoute
   '/help': typeof HelpIndexRoute
-  '/learning': typeof LearningIndexRoute
-  '/logs': typeof LogsIndexRoute
   '/memories': typeof MemoriesIndexRoute
+  '/playground': typeof PlaygroundIndexRoute
   '/relationships': typeof RelationshipsIndexRoute
   '/search': typeof SearchIndexRoute
+  '/sessions-history': typeof SessionsHistoryIndexRoute
   '/sessions': typeof SessionsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/stats': typeof StatsIndexRoute
@@ -110,11 +110,11 @@ export interface FileRoutesByTo {
   '/changelog': typeof ChangelogIndexRoute
   '/codebase': typeof CodebaseIndexRoute
   '/help': typeof HelpIndexRoute
-  '/learning': typeof LearningIndexRoute
-  '/logs': typeof LogsIndexRoute
   '/memories': typeof MemoriesIndexRoute
+  '/playground': typeof PlaygroundIndexRoute
   '/relationships': typeof RelationshipsIndexRoute
   '/search': typeof SearchIndexRoute
+  '/sessions-history': typeof SessionsHistoryIndexRoute
   '/sessions': typeof SessionsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/stats': typeof StatsIndexRoute
@@ -126,11 +126,11 @@ export interface FileRoutesById {
   '/changelog/': typeof ChangelogIndexRoute
   '/codebase/': typeof CodebaseIndexRoute
   '/help/': typeof HelpIndexRoute
-  '/learning/': typeof LearningIndexRoute
-  '/logs/': typeof LogsIndexRoute
   '/memories/': typeof MemoriesIndexRoute
+  '/playground/': typeof PlaygroundIndexRoute
   '/relationships/': typeof RelationshipsIndexRoute
   '/search/': typeof SearchIndexRoute
+  '/sessions-history/': typeof SessionsHistoryIndexRoute
   '/sessions/': typeof SessionsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/stats/': typeof StatsIndexRoute
@@ -143,11 +143,11 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/codebase'
     | '/help'
-    | '/learning'
-    | '/logs'
     | '/memories'
+    | '/playground'
     | '/relationships'
     | '/search'
+    | '/sessions-history'
     | '/sessions'
     | '/settings'
     | '/stats'
@@ -158,11 +158,11 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/codebase'
     | '/help'
-    | '/learning'
-    | '/logs'
     | '/memories'
+    | '/playground'
     | '/relationships'
     | '/search'
+    | '/sessions-history'
     | '/sessions'
     | '/settings'
     | '/stats'
@@ -173,11 +173,11 @@ export interface FileRouteTypes {
     | '/changelog/'
     | '/codebase/'
     | '/help/'
-    | '/learning/'
-    | '/logs/'
     | '/memories/'
+    | '/playground/'
     | '/relationships/'
     | '/search/'
+    | '/sessions-history/'
     | '/sessions/'
     | '/settings/'
     | '/stats/'
@@ -189,11 +189,11 @@ export interface RootRouteChildren {
   ChangelogIndexRoute: typeof ChangelogIndexRoute
   CodebaseIndexRoute: typeof CodebaseIndexRoute
   HelpIndexRoute: typeof HelpIndexRoute
-  LearningIndexRoute: typeof LearningIndexRoute
-  LogsIndexRoute: typeof LogsIndexRoute
   MemoriesIndexRoute: typeof MemoriesIndexRoute
+  PlaygroundIndexRoute: typeof PlaygroundIndexRoute
   RelationshipsIndexRoute: typeof RelationshipsIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
+  SessionsHistoryIndexRoute: typeof SessionsHistoryIndexRoute
   SessionsIndexRoute: typeof SessionsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   StatsIndexRoute: typeof StatsIndexRoute
@@ -229,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions-history/': {
+      id: '/sessions-history/'
+      path: '/sessions-history'
+      fullPath: '/sessions-history'
+      preLoaderRoute: typeof SessionsHistoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search/': {
       id: '/search/'
       path: '/search'
@@ -243,25 +250,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RelationshipsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playground/': {
+      id: '/playground/'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/memories/': {
       id: '/memories/'
       path: '/memories'
       fullPath: '/memories'
       preLoaderRoute: typeof MemoriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logs/': {
-      id: '/logs/'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof LogsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/learning/': {
-      id: '/learning/'
-      path: '/learning'
-      fullPath: '/learning'
-      preLoaderRoute: typeof LearningIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help/': {
@@ -301,11 +301,11 @@ const rootRouteChildren: RootRouteChildren = {
   ChangelogIndexRoute: ChangelogIndexRoute,
   CodebaseIndexRoute: CodebaseIndexRoute,
   HelpIndexRoute: HelpIndexRoute,
-  LearningIndexRoute: LearningIndexRoute,
-  LogsIndexRoute: LogsIndexRoute,
   MemoriesIndexRoute: MemoriesIndexRoute,
+  PlaygroundIndexRoute: PlaygroundIndexRoute,
   RelationshipsIndexRoute: RelationshipsIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
+  SessionsHistoryIndexRoute: SessionsHistoryIndexRoute,
   SessionsIndexRoute: SessionsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   StatsIndexRoute: StatsIndexRoute,

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { getSafeStorage } from '@/lib/storage'
 
 interface ConnectionSettings {
   apiBaseUrl: string
@@ -109,6 +110,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'free-context-settings',
+      storage: createJSONStorage(() => getSafeStorage()),
     },
   ),
 )

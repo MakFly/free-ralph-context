@@ -1,17 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useMemo, useRef } from 'react'
-import hljs from 'highlight.js/lib/core'
-import php from 'highlight.js/lib/languages/php'
-import typescript from 'highlight.js/lib/languages/typescript'
-import javascript from 'highlight.js/lib/languages/javascript'
-import python from 'highlight.js/lib/languages/python'
-import css from 'highlight.js/lib/languages/css'
-import json from 'highlight.js/lib/languages/json'
-import yaml from 'highlight.js/lib/languages/yaml'
-import bash from 'highlight.js/lib/languages/bash'
-import sql from 'highlight.js/lib/languages/sql'
-import xml from 'highlight.js/lib/languages/xml'
-import markdown from 'highlight.js/lib/languages/markdown'
+import { useEffect, useState, useMemo } from 'react'
+import { CodeBlock } from '@/components/ui/code-block'
 import {
   FolderIcon,
   FolderOpenIcon,
@@ -67,6 +56,7 @@ import {
 } from '@/components/ui/collapsible'
 import { useNexusStore, type Project, type ProjectTreeNode } from '@/stores/nexusStore'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export const Route = createFileRoute('/codebase/')({
   component: CodebasePage,
@@ -109,6 +99,7 @@ function CodebasePage() {
     createProject,
     deleteProject,
     open,
+    search,
   } = useNexusStore()
 
   const [loading, setLoading] = useState(true)
@@ -120,6 +111,12 @@ function CodebasePage() {
   const [newProjectDesc, setNewProjectDesc] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
+
+  // API Search state
+  const [apiSearchQuery, setApiSearchQuery] = useState('')
+  const [apiSearchResults, setApiSearchResults] = useState<any[] | null>(null)
+  const [apiSearching, setApiSearching] = useState(false)
+  const [showApiSearch, setShowApiSearch] = useState(false)
 
   // File viewer state
   const [viewingFile, setViewingFile] = useState<{
@@ -134,21 +131,15 @@ function CodebasePage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
-  // Register highlight.js languages
-  useEffect(() => {
-    hljs.registerLanguage('php', php)
-    hljs.registerLanguage('typescript', typescript)
-    hljs.registerLanguage('javascript', javascript)
-    hljs.registerLanguage('python', python)
-    hljs.registerLanguage('css', css)
-    hljs.registerLanguage('json', json)
-    hljs.registerLanguage('yaml', yaml)
-    hljs.registerLanguage('bash', bash)
-    hljs.registerLanguage('sql', sql)
-    hljs.registerLanguage('xml', xml)
-    hljs.registerLanguage('markdown', markdown)
-    hljs.registerLanguage('html', xml)
-  }, [])
+  // Smart Index suggestions state
+  const [indexSuggestions, setIndexSuggestions] = useState<{
+    patterns_detected: number
+    memories_suggested: number
+    candidates_created: any[]
+    memory_suggestions: any[]
+    errors: string[]
+  } | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // Initial load - connection checked by root loader
   useEffect(() => {
@@ -201,9 +192,12 @@ function CodebasePage() {
 
   const handleDeleteProject = async () => {
     if (!projectToDelete) return
-    await deleteProject(projectToDelete.id)
+    const projectIdToDelete = projectToDelete.id
+    // Close dialog immediately to prevent DOM conflicts during re-render
     setProjectToDelete(null)
     setDeleteConfirmation('')
+    // Then delete the project
+    await deleteProject(projectIdToDelete)
   }
 
   const handleOpenFile = async (path: string, language?: string) => {
@@ -228,6 +222,55 @@ function CodebasePage() {
     await navigator.clipboard.writeText(viewingFile.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleApiSearch = async () => {
+    if (!apiSearchQuery.trim() || !activeProject) return
+
+    setApiSearching(true)
+    setApiSearchResults(null)
+    setShowApiSearch(true)
+
+    try {
+      const result = await search({ query: apiSearchQuery, mode: 'keyword', k: 20 })
+      setApiSearchResults(result.hits || [])
+    } catch (e) {
+      console.error('API search failed:', e)
+      setApiSearchResults([])
+    } finally {
+      setApiSearching(false)
+    }
+  }
+
+  const handleFetchSuggestions = async () => {
+    if (!activeProject) return
+
+    try {
+      const response = await fetch(`http://localhost:3001/projects/post-index`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: activeProject.id,
+          stats: {
+            files_scanned: activeProject.file_count,
+            files_indexed: activeProject.file_count,
+            files_skipped: 0,
+            chunks_created: activeProject.chunk_count,
+            errors: []
+          }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setIndexSuggestions(data)
+        setShowSuggestions(true)
+      } else {
+        console.error('Failed to fetch suggestions:', response.statusText)
+      }
+    } catch (e) {
+      console.error('Failed to fetch suggestions:', e)
+    }
   }
 
   const toggleDir = (path: string) => {
@@ -470,39 +513,129 @@ function CodebasePage() {
                           value={formatNumber(activeProject.file_count)}
                           label="files"
                           color="emerald"
+                          tooltip="Source code files indexed in this project. Run `nexus sync` to update."
                         />
                         <StatPill
                           icon={LayersIcon}
                           value={formatNumber(activeProject.chunk_count)}
                           label="chunks"
                           color="cyan"
+                          tooltip="Searchable code fragments (functions, classes, blocks). Each file is split into chunks for precise FTS5 search."
                         />
                         <StatPill
                           icon={BrainIcon}
                           value={formatNumber(activeProject.memory_count)}
                           label="memories"
                           color="violet"
+                          tooltip="Stored knowledge for this project: decisions, discoveries, bugfixes captured during work sessions."
                         />
                         <StatPill
                           icon={SparklesIcon}
                           value={formatNumber(activeProject.pattern_count)}
                           label="patterns"
                           color="amber"
+                          tooltip="Reusable code patterns distilled from this codebase. Apply them with variables to generate new code."
                         />
+                        <Button
+                          onClick={handleFetchSuggestions}
+                          size="sm"
+                          className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 font-mono-code text-xs"
+                        >
+                          <SparklesIcon className="w-3 h-3 mr-1" />
+                          Analyze
+                        </Button>
                       </div>
                     </div>
                   </div>
 
+                  {/* Smart Index Suggestions */}
+                  {showSuggestions && indexSuggestions && (
+                    <div className="rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/5 border border-purple-500/20 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <SparklesIcon className="w-5 h-5 text-purple-400" />
+                          <h4 className="font-display text-sm font-semibold text-white">Smart Index Analysis</h4>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowSuggestions(false)}
+                          className="w-6 h-6 text-white/40 hover:text-white hover:bg-white/5"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Patterns Detected */}
+                        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                          <div className="flex items-center gap-2 mb-2">
+                            <SparklesIcon className="w-4 h-4 text-amber-400" />
+                            <span className="font-mono-code text-xs text-white/60">Patterns Detected</span>
+                            <span className="ml-auto font-mono-code text-sm font-bold text-amber-400">
+                              {indexSuggestions.patterns_detected}
+                            </span>
+                          </div>
+                          {indexSuggestions.candidates_created.length > 0 ? (
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {indexSuggestions.candidates_created.slice(0, 5).map((candidate: any) => (
+                                <div key={candidate.id} className="text-xs text-white/70 font-mono-code truncate bg-white/5 px-2 py-1 rounded">
+                                  {candidate.label || `Candidate #${candidate.id}`}
+                                  <span className="text-white/40 ml-2">[{candidate.tags?.join(', ') || ''}]</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-white/30 italic">No patterns detected</p>
+                          )}
+                        </div>
+
+                        {/* Memory Suggestions */}
+                        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                          <div className="flex items-center gap-2 mb-2">
+                            <BrainIcon className="w-4 h-4 text-violet-400" />
+                            <span className="font-mono-code text-xs text-white/60">Memory Suggestions</span>
+                            <span className="ml-auto font-mono-code text-sm font-bold text-violet-400">
+                              {indexSuggestions.memories_suggested}
+                            </span>
+                          </div>
+                          {indexSuggestions.memory_suggestions.length > 0 ? (
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {indexSuggestions.memory_suggestions.slice(0, 5).map((suggestion: any) => (
+                                <div key={suggestion.memory_id} className="text-xs text-white/70 bg-white/5 px-2 py-1 rounded">
+                                  <div className="truncate">{suggestion.summary}</div>
+                                  <div className="text-white/30 text-[10px] mt-0.5">
+                                    via: {suggestion.keyword}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-white/30 italic">No memory suggestions</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {indexSuggestions.errors.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-white/10">
+                          <p className="text-xs text-orange-400/80 font-mono-code">
+                            {indexSuggestions.errors.length} error(s) - API may not be running
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Tree View */}
                   <div className="rounded-xl bg-[oklch(0.14_0.01_260)] border border-white/5 overflow-hidden">
-                    {/* Search Bar */}
+                    {/* Search Bar - filters tree by filename */}
                     <div className="p-3 border-b border-white/5">
                       <div className="relative">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         <Input
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search files..."
+                          placeholder="Filter by filename..."
                           className="pl-10 bg-white/5 border-white/10 text-white font-mono-code text-sm placeholder:text-white/30 focus:border-emerald-500/50 focus:ring-emerald-500/20"
                         />
                       </div>
@@ -536,6 +669,101 @@ function CodebasePage() {
                           <p className="font-mono-code text-xs text-white/20 mt-1">
                             Run the Python indexer for this project
                           </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* API Search Section - searches in file content */}
+                    <div className="border-t border-white/5 p-3">
+                      <button
+                        onClick={() => setShowApiSearch(!showApiSearch)}
+                        className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors w-full"
+                      >
+                        <SearchIcon className="w-4 h-4" />
+                        <span>Search in code (FTS5)</span>
+                        {showApiSearch ? <ChevronDownIcon className="w-4 h-4 ml-auto" /> : <ChevronRightIcon className="w-4 h-4 ml-auto" />}
+                      </button>
+
+                      {showApiSearch && (
+                        <div className="mt-3 space-y-3">
+                          <div className="relative">
+                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                            <Input
+                              value={apiSearchQuery}
+                              onChange={(e) => setApiSearchQuery(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleApiSearch()}
+                              placeholder="Search with FTS5 (e.g., AuthController)..."
+                              className="pl-10 bg-white/5 border-white/10 text-white font-mono-code text-sm placeholder:text-white/30 focus:border-emerald-500/50 focus:ring-emerald-500/20"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={handleApiSearch}
+                              disabled={!apiSearchQuery.trim() || apiSearching}
+                              size="sm"
+                              className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 font-mono-code text-xs"
+                            >
+                              {apiSearching ? 'Searching...' : 'Search'}
+                            </Button>
+                            {(apiSearchResults || apiSearching) && (
+                              <Button
+                                onClick={() => {
+                                  setApiSearchResults(null)
+                                  setApiSearchQuery('')
+                                }}
+                                size="sm"
+                                variant="ghost"
+                                className="text-white/40 hover:text-white hover:bg-white/5 font-mono-code text-xs"
+                              >
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* API Search Results */}
+                          {apiSearching && (
+                            <div className="space-y-1">
+                              {[...Array(3)].map((_, i) => (
+                                <Skeleton key={i} className="h-12 bg-white/5" />
+                              ))}
+                            </div>
+                          )}
+
+                          {apiSearchResults && (
+                            <div className="space-y-1">
+                              {apiSearchResults.length === 0 ? (
+                                <div className="py-6 text-center">
+                                  <SearchIcon className="w-8 h-8 mx-auto text-white/20 mb-2" />
+                                  <p className="text-sm text-white/40">No results found</p>
+                                </div>
+                              ) : (
+                                <div className="max-h-[300px] overflow-y-auto space-y-1">
+                                  {apiSearchResults.map((hit, i) => (
+                                    <button
+                                      key={i}
+                                      onClick={() => handleOpenFile(hit.path)}
+                                      className="w-full text-left p-2 rounded bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <FileCodeIcon className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <code className="text-sm text-white/90 font-mono-code truncate flex-1">
+                                          {hit.path}
+                                        </code>
+                                        <span className="text-xs text-white/40 whitespace-nowrap">
+                                          {hit.startLine}:{hit.endLine}
+                                        </span>
+                                      </div>
+                                      {hit.symbol && (
+                                        <div className="ml-6 text-xs text-white/40">
+                                          {hit.symbol}
+                                        </div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -600,23 +828,11 @@ function CodebasePage() {
                 ))}
               </div>
             ) : viewingFile?.content ? (
-              <div className="relative">
-                {/* Line numbers */}
-                <div className="absolute left-0 top-0 bottom-0 w-12 bg-[oklch(0.10_0.01_260)] border-r border-white/5 text-white/20 text-sm font-mono-code text-right pr-3 pt-4 select-none overflow-hidden z-10">
-                  {viewingFile.content.split('\n').map((_, i) => (
-                    <div key={i} className="leading-[1.6]">
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-                {/* Highlighted code */}
-                <div className="pl-14">
-                  <SyntaxHighlighter
-                    code={viewingFile.content}
-                    language={viewingFile.language || 'text'}
-                  />
-                </div>
-              </div>
+              <CodeBlock
+                code={viewingFile.content}
+                language={viewingFile.language || 'text'}
+                showLineNumbers={true}
+              />
             ) : null}
           </div>
         </DialogContent>
@@ -642,26 +858,27 @@ function CodebasePage() {
                 Delete Project
               </AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="font-mono-code text-white/60 space-y-3">
-              <div>
-                Are you sure you want to delete <span className="text-white font-semibold">"{projectToDelete?.name}"</span>?
-              </div>
-              <div className="text-red-400/80">
+            <AlertDialogDescription className="font-mono-code text-white/60">
+              Are you sure you want to delete <span className="text-white font-semibold">"{projectToDelete?.name}"</span>?
+              <span className="text-red-400/80 block mt-2">
                 This will remove all indexed files and cannot be undone.
-              </div>
-              <div className="pt-2">
-                Type <span className="text-red-400 font-bold">DELETE</span> to confirm:
-              </div>
-              <input
-                type="text"
-                value={deleteConfirmation}
-                onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())}
-                placeholder="DELETE"
-                className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white font-mono-code text-sm focus:outline-none focus:border-red-500/50 placeholder:text-white/20"
-                autoComplete="off"
-              />
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="space-y-3">
+            <p className="font-mono-code text-white/60 text-sm">
+              Type <span className="text-red-400 font-bold">DELETE</span> to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmation}
+              onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())}
+              placeholder="DELETE"
+              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white font-mono-code text-sm focus:outline-none focus:border-red-500/50 placeholder:text-white/20"
+              autoComplete="off"
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
@@ -688,24 +905,6 @@ function CodebasePage() {
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
-  )
-}
-
-// Syntax Highlighter Component
-function SyntaxHighlighter({ code, language }: { code: string; language: string }) {
-  const preRef = useRef<HTMLPreElement>(null)
-
-  useEffect(() => {
-    if (preRef.current) {
-      const result = hljs.highlight(code, { language: language.toLowerCase() || 'plaintext' })
-      preRef.current.innerHTML = result.value
-    }
-  }, [code, language])
-
-  return (
-    <pre ref={preRef} className="hljs p-4 m-0 text-sm leading-relaxed">
-      <code>{code}</code>
-    </pre>
   )
 }
 
@@ -812,11 +1011,13 @@ function StatPill({
   value,
   label,
   color,
+  tooltip,
 }: {
   icon: React.ComponentType<{ className?: string }>
   value: string
   label: string
   color: 'emerald' | 'cyan' | 'violet' | 'amber'
+  tooltip?: string
 }) {
   const colorClasses = {
     emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -825,17 +1026,29 @@ function StatPill({
     amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   }
 
-  return (
+  const pill = (
     <div
       className={cn(
         'flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono-code text-xs',
-        colorClasses[color]
+        colorClasses[color],
+        tooltip && 'cursor-help'
       )}
     >
       <Icon className="w-3.5 h-3.5" />
       <span className="font-semibold">{value}</span>
       <span className="text-white/30 hidden sm:inline">{label}</span>
     </div>
+  )
+
+  if (!tooltip) return pill
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{pill}</TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-xs">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -857,21 +1070,20 @@ function TreeView({
 }) {
   const isExpanded = expandedDirs.has(node.path)
 
-  // Filter logic for search
+  // Recursive search function - searches all levels deep
+  const nodeMatchesSearch = (n: ProjectTreeNode, query: string): boolean => {
+    if (n.name.toLowerCase().includes(query)) return true
+    if (n.type === 'directory' && n.children) {
+      return n.children.some((child) => nodeMatchesSearch(child, query))
+    }
+    return false
+  }
+
+  // Filter logic for search - now fully recursive
   const matchesSearch = useMemo(() => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
-    if (node.name.toLowerCase().includes(query)) return true
-    if (node.type === 'directory' && node.children) {
-      return node.children.some((child) => {
-        if (child.name.toLowerCase().includes(query)) return true
-        if (child.type === 'directory' && child.children) {
-          return child.children.some((c) => c.name.toLowerCase().includes(query))
-        }
-        return false
-      })
-    }
-    return false
+    return nodeMatchesSearch(node, query)
   }, [node, searchQuery])
 
   if (!matchesSearch) return null

@@ -4,6 +4,7 @@
  */
 
 import { Hono } from 'hono';
+import { analyzeIndex } from '../services/index-analyzer.js';
 
 export interface Project {
   id: number;
@@ -45,7 +46,7 @@ export function createProjectRoutes(getDb: () => Promise<Database>) {
     );
 
     // Recalculate counts for each project
-    const projectsWithCounts = projects.map(project => {
+    const projectsWithCounts = projects.map((project) => {
       const fileCount = db.queryOne<{ count: number }>(
         'SELECT COUNT(*) as count FROM files WHERE project_id = ?',
         project.id
@@ -363,6 +364,32 @@ export function createProjectRoutes(getDb: () => Promise<Database>) {
       root_path: project.root_path,
       message: 'Project cleared for reindexing. Run indexer with this project_id.',
     });
+  });
+
+  // ==================== POST-INDEX ANALYSIS ====================
+  // Analyzes indexed content for patterns and memory suggestions
+  app.post('/post-index', async (c) => {
+    const db = await getDb();
+    const { project_id, stats } = await c.req.json();
+
+    if (!project_id || !stats) {
+      return c.json({ error: 'project_id and stats are required' }, 400);
+    }
+
+    // Verify project exists
+    const project = db.queryOne<Project>(
+      'SELECT * FROM projects WHERE id = ?',
+      project_id
+    );
+
+    if (!project) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+
+    // Run analysis
+    const results = await analyzeIndex(db, project_id, stats);
+
+    return c.json(results);
   });
 
   return app;

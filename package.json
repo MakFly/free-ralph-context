@@ -1,6 +1,6 @@
 {
   "name": "nexus",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -17,7 +17,9 @@
     "lint": "bun run lint:packages && bun run lint:apps",
     "lint:packages": "bun run --filter './packages/*' lint",
     "lint:apps": "bun run --filter './apps/*' lint",
-    "clean": "rm -rf node_modules **/node_modules **/dist"
+    "clean": "rm -rf node_modules **/node_modules **/dist",
+    "install:nexus": "bun run scripts/install.ts",
+    "uninstall:nexus": "bun run apps/hooks/install.ts -u"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
